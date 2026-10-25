@@ -19,6 +19,19 @@ const VISITOR_RE = /^[A-Za-z0-9-]{16,64}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ORDER_LABEL = { review:'Chờ duyệt', confirmed:'Đã xác nhận', completed:'Đã nhận bé', cancelled:'Đã hủy' };
 
+/** Plain-language cause for common setup mistakes; never includes connection strings, keys or data. */
+export function setupHint(e) {
+  const code = e && e.code, msg = String(e && e.message || '');
+  if (code === '28P01' || /password authentication failed/i.test(msg)) return 'DATABASE_URL: sai mật khẩu database';
+  if (/Tenant or user not found/i.test(msg)) return 'DATABASE_URL: sai tên người dùng, cần dạng postgres.<mã project>';
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DATABASE_URL: không tìm thấy máy chủ database, kiểm tra lại địa chỉ';
+  if (code === 'ENETUNREACH' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || /timeout/i.test(msg)) return 'DATABASE_URL: không kết nối được, hãy dùng chuỗi Transaction pooler (cổng 6543)';
+  if (code === 'ERR_INVALID_URL' || /Invalid URL|invalid connection/i.test(msg)) return 'DATABASE_URL: chuỗi kết nối không đúng định dạng';
+  if (code === '42P01') return 'chưa tạo bảng, hãy chạy supabase/schema.sql';
+  if (code === '3D000') return 'DATABASE_URL: sai tên database, phải là postgres';
+  return '';
+}
+
 export class HttpError extends Error {
   constructor(status, message, fields) { super(message); this.status = status; this.fields = fields; }
 }
@@ -553,7 +566,8 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     } catch (e) {
       if (e instanceof HttpError) return { status: e.status, body: { error: e.message, fields: e.fields } };
       console.error(e);
-      return { status: 500, body: { error: 'Máy chủ gặp lỗi, vui lòng thử lại sau.' } };
+      const hint = setupHint(e);
+      return { status: 500, body: { error: 'Máy chủ gặp lỗi, vui lòng thử lại sau.' + (hint ? ' (' + hint + ')' : '') } };
     }
   }
 
