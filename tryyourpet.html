@@ -444,9 +444,20 @@ function renderNav(){
     <button data-act="go" data-view="list" aria-current="${v === 'list'}">Thú cưng</button>
     <button data-act="go" data-view="support" aria-current="${v === 'support'}">Hỗ trợ bé</button>
     <button data-act="go" data-view="home" aria-current="${v === 'home' || v === 'checkout'}">Nhà của tôi <span class="count" aria-label="${n} bé">${n}</span></button>
-    <button data-act="go" data-view="admin" aria-current="${v === 'admin'}">Quản trị</button>`;
+    ${IS_ADMIN ? `<button data-act="go" data-view="admin" aria-current="${v === 'admin'}">Quản trị</button>` : ''}`;
+}
+/* Admin is shown only to the artifact's owner, as reported by the Claude viewer.
+   Outside Claude (e.g. the public Netlify site) nobody is admin. This only hides UI:
+   the demo keeps all data in each visitor's own browser, so there is nothing shared to protect yet. */
+let IS_ADMIN = false;
+async function detectAdmin(){
+  try {
+    const user = window.claude?.use ? await window.claude.use('user') : null;
+    if (user && await user.isOwner()){ IS_ADMIN = true; render(); }
+  } catch(e) {}
 }
 function render(){
+  if (S.view === 'admin' && !IS_ADMIN) S.view = 'list';
   sweep(); save(); renderNav();
   ({ list:viewList, support:viewSupport, home:viewHome, checkout:viewCheckout, done:viewDone, admin:viewAdmin })[S.view]();
 }
@@ -840,7 +851,7 @@ function viewDone(){
     </dl>
     ${o.status === 'review' ? `<div class="callout warn">Quản trị viên sẽ xem lại đơn và trả lời qua email ${esc(o.customer.email)}. Bé vẫn được giữ cho bạn đến hết lịch hẹn.</div>` : `<div class="callout ok">Email xác nhận đã được gửi tới ${esc(o.customer.email)}.</div>`}
     <p class="hint">Lịch không thể tự đổi hoặc hủy. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.</p>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="go" data-view="list">Xem thêm các bé</button><button class="btn ghost" data-act="go" data-view="admin">Xem đơn trong trang quản trị</button></div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="go" data-view="list">Xem thêm các bé</button>${IS_ADMIN ? '<button class="btn ghost" data-act="go" data-view="admin">Xem đơn trong trang quản trị</button>' : ''}</div>
   </section>`;
 }
 
@@ -1004,4 +1015,5 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
 render();
+detectAdmin();
 </script>

@@ -10,7 +10,7 @@ TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ v�
 - Thêm bé vào "Nhà của tôi" (tối đa 2 bé, giữ chỗ 7 ngày)
 - Đăng ký nhận nuôi: thông tin cá nhân, xác thực email, câu hỏi sàng lọc, chọn lịch đón bé tại trạm
 - Hỗ trợ các bé bằng tiền (chuyển khoản) hoặc hiện vật
-- Trang quản trị: đơn nhận nuôi, lịch đón bé, lượt hỗ trợ, cài đặt khung giờ
+- Trang quản trị: đơn nhận nuôi, lịch đón bé, lượt hỗ trợ, cài đặt khung giờ. Chỉ hiện cho chủ sở hữu khi xem bản demo trên Claude; website công khai (Netlify) không có mục này cho đến khi có máy chủ và đăng nhập thật.
 
 ## Cấu trúc
 
