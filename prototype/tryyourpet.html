@@ -86,6 +86,9 @@ main{padding-block:28px 64px}
 .bank{display:flex;gap:18px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:8px}
 .bank img{width:150px;height:150px;border-radius:8px;background:#fff;padding:4px;flex:none}
 .bank .review-list{flex:1;min-width:220px}
+.proof{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.proof img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+input[type=file]{font-size:14px;max-width:100%}
 .acct{font-size:17px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 a{color:var(--accent)}
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-block:9px;border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:14px}
@@ -564,15 +567,25 @@ const ITEMS = [
   ['gear','Đồ dùng: bát ăn, dây dắt, lồng vận chuyển','món'], ['pad','Tã lót, khăn lau','gói']
 ];
 const NEEDS = { VML:['catfood','litter','milk'], PN:['pate','litter','med'], TD:['dogfood','med','gear'] };
-function bankBox(code){
+function bankBox(){
   return `<div class="bank">
     <img src="${BANK.qr}" alt="Mã QR chuyển khoản ${BANK.bank} ${BANK.number}" width="150" height="150">
     <dl class="review-list">
       <dt>Ngân hàng</dt><dd>${BANK.bank}</dd>
       <dt>Số tài khoản</dt><dd><b class="acct" id="acct">${BANK.number}</b> <button class="btn ghost small" data-act="copyacct">Sao chép</button></dd>
       <dt>Chủ tài khoản</dt><dd>${BANK.holder}<br><small class="meta">${BANK.role}</small></dd>
-      <dt>Nội dung</dt><dd>${code ? `<b>${code}</b>` : 'Mã hỗ trợ bạn nhận được sau khi gửi đăng ký'}</dd>
     </dl></div>`;
+}
+/* Transfer proof picked by the donor; kept in memory only (object URLs do not survive a reload) */
+const PROOF_TYPES = ['image/jpeg','image/png','image/webp','application/pdf'], PROOF_MAX = 5 * 1024 * 1024;
+let proofDraft = null;
+const proofUrls = {};
+function proofField(){
+  return `<div class="field"><span>Ảnh chụp minh chứng chuyển khoản</span>
+    <input type="file" id="s-proof" accept="image/jpeg,image/png,image/webp,application/pdf">
+    ${proofDraft ? `<div class="proof">${proofDraft.type.startsWith('image/') ? `<img src="${proofDraft.url}" alt="Minh chứng chuyển khoản đã chọn">` : ''}<span>${esc(proofDraft.name)}, ${Math.ceil(proofDraft.size/1024)} KB</span></div>` : ''}
+    <span class="hint">Ảnh chụp màn hình giao dịch thành công (JPG, PNG, WEBP hoặc PDF, tối đa 5 MB).</span>
+    <span class="err">${esc(supErr.proof || '')}</span></div>`;
 }
 const AMOUNTS = [100000, 200000, 500000, 1000000];
 const fmtVND = n => Number(n).toLocaleString('vi-VN')+'đ';
@@ -599,15 +612,18 @@ function submitSupport(){
   const s = S.support; supErr = {};
   const amount = s.amount === 'custom' ? Math.round(+s.custom || 0) : s.amount;
   if (s.type === 'cash' && !(amount >= 10000)) supErr.amount = 'Số tiền tối thiểu là 10.000đ.';
+  if (s.type === 'cash' && !proofDraft) supErr.proof = 'Tải lên ảnh chụp minh chứng chuyển khoản.';
   if (s.type === 'items' && !ITEMS.some(([k]) => s.items[k] > 0)) supErr.items = 'Nhập số lượng cho ít nhất một món.';
   if (!(s.name || '').trim()) supErr.name = 'Nhập họ tên để trạm ghi nhận.';
   if (!EMAIL_RE.test(s.contact || '')) supErr.contact = 'Nhập email để nhận xác nhận.';
   if (Object.keys(supErr).length) return false;
   const now = new Date(), id = 'HT-'+pad(now.getMonth()+1)+pad(now.getDate())+'-'+String(Math.floor(Math.random()*9000)+1000);
   const rec = { id, type:s.type, target:s.target || 'all', amount:s.type === 'cash' ? amount : null, items:s.type === 'items' ? { ...s.items } : null,
-    method:s.type === 'items' ? (s.method || 'dropoff') : null, name:s.name.trim(), anon:!!s.anon, contact:s.contact, phone:s.phone || '', note:s.note || '', status:'pending', createdAt:Date.now() };
+    method:s.type === 'items' ? (s.method || 'dropoff') : null, name:s.name.trim(), anon:!!s.anon, contact:s.contact, phone:s.phone || '', note:s.note || '', status:'pending', createdAt:Date.now(),
+    proofName:s.type === 'cash' ? proofDraft.name : null };
+  if (s.type === 'cash'){ proofUrls[id] = proofDraft; proofDraft = null; }
   S.supports.unshift(rec);
-  mail(s.contact, 'Xác nhận đăng ký hỗ trợ '+id+(s.type === 'cash' ? ' · '+fmtVND(amount) : ''));
+  mail(s.contact, s.type === 'cash' ? 'Đã nhận minh chứng chuyển khoản '+fmtVND(amount)+', dự án đang đối soát' : 'Xác nhận đăng ký hỗ trợ hiện vật');
   mail('quanly@tryyourpet.vn', 'Hỗ trợ mới '+id+' cho '+targetLabel(rec.target));
   S.lastSupport = id;
   S.support = { type:s.type, target:'all', amount:200000, items:{}, method:'dropoff', name:s.name, contact:s.contact, phone:s.phone };
@@ -621,14 +637,12 @@ function viewSupport(){
       <img class="mascot-empty" src="assets/cat-sit.png" alt="">
       <span class="pill confirmed" style="justify-self:center">Đã ghi nhận</span>
       <h1>Cảm ơn bạn đã <em>thương các bé</em></h1>
-      <p>Mã hỗ trợ <span class="code">${done.id}</span></p>
       <dl class="review-list" style="text-align:left;justify-self:center">
         <dt>Dành cho</dt><dd>${esc(targetLabel(done.target))}</dd>
         <dt>${done.type === 'cash' ? 'Số tiền' : 'Hiện vật'}</dt><dd>${esc(supportText(done))}</dd>
-        ${done.type === 'cash' ? '' : `<dt>Cách gửi</dt><dd>${done.method === 'ship' ? 'Gửi chuyển phát đến trạm' : 'Mang trực tiếp đến trạm'}</dd>`}
+        ${done.type === 'cash' ? `<dt>Minh chứng</dt><dd>${esc(done.proofName)}</dd>` : `<dt>Cách gửi</dt><dd>${done.method === 'ship' ? 'Gửi chuyển phát đến trạm' : 'Mang trực tiếp đến trạm'}</dd>`}
       </dl>
-      ${done.type === 'cash' ? `<div style="text-align:left">${bankBox(done.id)}</div>` : ''}
-      <div class="callout ok">Email xác nhận${done.type === 'cash' ? ' kèm thông tin chuyển khoản' : ' kèm địa chỉ trạm'} đã được gửi tới ${esc(done.contact)}. Khi trạm nhận được, bạn sẽ nhận thêm một email báo lại.</div>
+      <div class="callout ok">${done.type === 'cash' ? 'Dự án đã nhận minh chứng chuyển khoản và sẽ đối soát với tài khoản ngân hàng.' : 'Email xác nhận kèm địa chỉ trạm đã được gửi tới '+esc(done.contact)+'.'} Khi ${done.type === 'cash' ? 'tiền đã về' : 'trạm nhận được đồ'}, bạn sẽ nhận một email báo lại.</div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="supportagain">Hỗ trợ thêm</button><button class="btn ghost" data-act="go" data-view="list">Xem các bé</button></div>
     </section>`;
     return;
@@ -640,8 +654,9 @@ function viewSupport(){
       <div class="choices">${AMOUNTS.map(a => `<button class="choice" data-act="samount" data-v="${a}" aria-pressed="${s.amount === a}">${fmtVND(a)}</button>`).join('')}<button class="choice" data-act="samount" data-v="custom" aria-pressed="${s.amount === 'custom'}">Số khác</button></div>
       ${s.amount === 'custom' ? `<label class="field"><span>Nhập số tiền (đồng)</span><input id="s-custom" type="number" min="10000" step="1000" data-s="custom" value="${esc(s.custom || '')}"></label>` : ''}
       <span class="err">${esc(supErr.amount || '')}</span></div>
-    <div class="q"><span class="qt">Tài khoản nhận hỗ trợ</span>${bankBox()}
-      <p class="hint">Gửi đăng ký trước để nhận mã hỗ trợ, rồi quét QR hoặc chuyển khoản và ghi mã đó ở nội dung chuyển khoản để dự án đối soát.</p></div>`;
+    <div class="q"><span class="qt">Chuyển khoản tới tài khoản của dự án</span>${bankBox()}
+      <p class="hint">Quét mã QR hoặc chuyển khoản theo thông tin trên, rồi tải ảnh chụp giao dịch thành công lên bên dưới để dự án đối soát.</p>
+      ${proofField()}</div>`;
   const goods = `
     <div class="q"><span class="qt">Chọn đồ và số lượng</span>
       <div class="items">${ITEMS.map(([k,l,u]) => `<label class="item-row"><span>${l} ${need.includes(k) ? '<span class="pill mine">Trạm đang cần</span>' : ''}</span><span class="qty"><input id="it-${k}" type="number" min="0" max="999" data-item="${k}" value="${s.items[k] || 0}" aria-label="Số lượng ${l}">${u}</span></label>`).join('')}</div>
@@ -672,7 +687,7 @@ function viewSupport(){
         <label class="check" style="align-self:end"><input type="checkbox" id="s-anon" data-s="anon" ${s.anon ? 'checked' : ''}>Ẩn tên tôi khi trạm cảm ơn công khai</label>
         <label class="field full"><span>Lời nhắn cho trạm (không bắt buộc)</span><textarea id="s-note" data-s="note">${esc(s.note || '')}</textarea></label>
       </div>
-      <div class="nav-steps"><span></span><button class="btn" data-act="supportsubmit">Gửi đăng ký hỗ trợ</button></div>
+      <div class="nav-steps"><span></span><button class="btn" data-act="supportsubmit">${s.type === 'cash' ? 'Gửi minh chứng chuyển khoản' : 'Gửi đăng ký hỗ trợ'}</button></div>
     </section>
     <aside class="panel"><h3>Các trạm đang cần</h3>
       ${Object.entries(STATIONS).map(([k,x]) => `<div class="need-block"><b>${x.name}</b><span class="meta">${x.area}${fbLink(x)}</span><div class="tags">${NEEDS[k].map(n => `<span class="tag yes">${ITEMS.find(i => i[0] === n)[1]}</span>`).join('')}</div></div>`).join('')}
@@ -903,7 +918,7 @@ function viewAdmin(){
     ${S.supports.length ? S.supports.map(x => `<tr>
       <td><b>${x.id}</b>${x.example ? '<br><small class="meta">ví dụ</small>' : ''}</td>
       <td>${esc(x.name)}${x.anon ? ' <small class="meta">(ẩn tên công khai)</small>' : ''}<br><small class="meta">${esc(x.contact)}</small></td>
-      <td>${x.type === 'cash' ? 'Hiện kim' : 'Hiện vật'} · ${esc(supportText(x))}${x.method ? `<br><small class="meta">${x.method === 'ship' ? 'Gửi chuyển phát' : 'Mang đến trạm'}</small>` : ''}</td>
+      <td>${x.type === 'cash' ? 'Hiện kim' : 'Hiện vật'}, ${esc(supportText(x))}${x.method ? `<br><small class="meta">${x.method === 'ship' ? 'Gửi chuyển phát' : 'Mang đến trạm'}</small>` : ''}${x.type === 'cash' ? `<br>${proofUrls[x.id] ? `<a href="${proofUrls[x.id].url}" target="_blank" rel="noopener">Xem minh chứng</a>` : `<small class="meta">${x.proofName ? 'Minh chứng: '+esc(x.proofName) : 'Chưa có minh chứng'}</small>`}` : ''}</td>
       <td>${esc(targetLabel(x.target))}</td>
       <td><span class="pill ${x.status === 'received' ? 'completed' : 'review'}">${x.status === 'received' ? 'Đã nhận' : 'Chờ nhận'}</span></td>
       <td>${x.status === 'pending' ? `<button class="btn small" data-act="supportdone" data-id="${x.id}">${x.type === 'cash' ? 'Đã nhận tiền' : 'Đã nhận đồ'}</button>` : ''}</td></tr>`).join('')
@@ -1012,6 +1027,14 @@ document.addEventListener('change', e => {
   else if (t.dataset.openday !== undefined){ const x = +t.dataset.openday; S.settings.openDays = t.checked ? [...S.settings.openDays, x] : S.settings.openDays.filter(d => d !== x); render(); }
   else if (t.dataset.cap){ const s = slotById(t.dataset.cap); s.cap = Math.max(0, Math.min(20, +t.value || 0)); render(); }
   else if (t.dataset.s === 'target' || t.dataset.s === 'method'){ S.support[t.dataset.s] = t.value; render(); }
+  else if (t.id === 's-proof'){
+    const f = t.files && t.files[0];
+    if (!f) return;
+    if (!PROOF_TYPES.includes(f.type)) supErr.proof = 'Chỉ nhận ảnh JPG, PNG, WEBP hoặc file PDF.';
+    else if (f.size > PROOF_MAX) supErr.proof = 'File lớn hơn 5 MB, chọn ảnh nhỏ hơn.';
+    else { if (proofDraft) URL.revokeObjectURL(proofDraft.url); proofDraft = { name:f.name, size:f.size, type:f.type, url:URL.createObjectURL(f) }; supErr.proof = ''; }
+    render();
+  }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
 render();

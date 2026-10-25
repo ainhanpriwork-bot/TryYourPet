@@ -1,0 +1,21 @@
+{
+  "name": "tryyourpet",
+  "private": true,
+  "type": "module",
+  "description": "Website nhận nuôi và hỗ trợ chó mèo cứu hộ TP.HCM",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "dev": "node tests/dev-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "nodemailer": "6.9.15",
+    "pg": "8.13.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.2.12"
+  }
+}
