@@ -21,7 +21,9 @@ export default async (req) => {
     });
   } catch (e) {
     console.error(e);
-    res = { status: 500, body: { error: 'Máy chủ chưa được cấu hình xong, vui lòng thử lại sau.' } };
+    // Only the variable's name is shown, never a value, so the site owner can see what to add in Netlify.
+    const missing = /^Missing environment variable (\w+)$/.exec(e && e.message || '');
+    res = { status: 500, body: { error: 'Máy chủ chưa được cấu hình xong' + (missing ? ' (thiếu biến ' + missing[1] + ')' : '') + ', vui lòng thử lại sau.' } };
   }
   return Response.json(res.body, { status: res.status, headers: { 'Cache-Control': 'no-store' } });
 };

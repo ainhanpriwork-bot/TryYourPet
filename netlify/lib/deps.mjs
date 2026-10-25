@@ -59,19 +59,24 @@ export function getApp() {
     }
   };
 
-  const transport = nodemailer.createTransport({
-    host: 'smtp.gmail.com', port: 465, secure: true,
-    auth: { user: env('GMAIL_USER'), pass: env('GMAIL_APP_PASSWORD') }
-  });
+  // Gmail is checked when an email is sent, not at start-up, so the site keeps working without it
+  // (the failed send is recorded in email_log and shown on the admin page).
+  let transport = null;
   const mailer = {
-    send: ({ to, subject, text, html }) => transport.sendMail({ from: '"TryYourPet" <' + env('GMAIL_USER') + '>', to, subject, text, html })
+    send: ({ to, subject, text, html }) => {
+      if (!transport) transport = nodemailer.createTransport({
+        host: 'smtp.gmail.com', port: 465, secure: true,
+        auth: { user: env('GMAIL_USER'), pass: env('GMAIL_APP_PASSWORD') }
+      });
+      return transport.sendMail({ from: '"TryYourPet" <' + process.env.GMAIL_USER + '>', to, subject, text, html });
+    }
   };
 
   app = createApp({
     db, storage, auth, mailer,
     config: {
       tokenSecret: env('TOKEN_SECRET'),
-      notifyEmail: process.env.NOTIFY_EMAIL || env('GMAIL_USER'),
+      notifyEmail: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER || '',
       siteUrl: process.env.URL || process.env.SITE_URL || '',
       supabaseUrl: env('SUPABASE_URL'),
       supabaseAnonKey: env('SUPABASE_ANON_KEY')
