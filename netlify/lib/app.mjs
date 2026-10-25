@@ -29,7 +29,9 @@ export function setupHint(e) {
   if (code === 'ERR_INVALID_URL' || /Invalid URL|invalid connection/i.test(msg)) return 'DATABASE_URL: chuỗi kết nối không đúng định dạng';
   if (code === '42P01') return 'chưa tạo bảng, hãy chạy supabase/schema.sql';
   if (code === '3D000') return 'DATABASE_URL: sai tên database, phải là postgres';
-  return '';
+  if (/self.signed|certificate/i.test(msg)) return 'lỗi chứng chỉ SSL khi kết nối database';
+  // Error codes and class names carry no data, so they are safe to show and let the cause be looked up.
+  return 'mã lỗi: ' + (code || (e && e.name) || 'không rõ');
 }
 
 export class HttpError extends Error {
