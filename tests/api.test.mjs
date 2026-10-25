@@ -86,9 +86,9 @@ test('order goes to review on flagged answers; validation errors come back per f
   const token = await h.verifiedToken('khach@example.com');
   const cat = (await h.call('GET', 'catalog', null, { query: { visitor: V1 } })).body;
   const base = { visitorId: V1, emailToken: token, answers: goodAnswers, date: cat.days[0].date, slotId: 's2', commits: [true, true, true, true] };
-  const minor = await h.call('POST', 'orders', { ...base, customer: { ...goodCustomer(), cccd: '079210001234' } });
+  const minor = await h.call('POST', 'orders', { ...base, customer: { ...goodCustomer(), adult: false } });
   assert.equal(minor.status, 400);
-  assert.match(minor.body.fields.cccd, /18 tuổi/);
+  assert.match(minor.body.fields.adult, /18 tuổi/);
   const otherEmail = await h.call('POST', 'orders', { ...base, customer: goodCustomer('khac@example.com') });
   assert.match(otherEmail.body.error, /xác thực/);
   const noCommit = await h.call('POST', 'orders', { ...base, customer: goodCustomer(), commits: [true, false, true, true] });

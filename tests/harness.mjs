@@ -52,6 +52,6 @@ export async function makeHarness({ start = Date.parse('2026-10-26T03:00:00Z') }
 }
 
 export const goodCustomer = (email = 'khach@example.com') => ({
-  name: 'Nguyễn Văn An', phone: '0901234567', email, address: '12 Lê Lợi', district: 'Quận 1', job: 'Nhân viên', cccd: '079099001234'
+  name: 'Nguyễn Văn An', phone: '0901234567', email, address: '12 Lê Lợi', district: 'Quận 1', job: 'Nhân viên', adult: true
 });
 export const goodAnswers = { exp: 'past', otherPets: 'none', housing: 'own', permit: 'na', family: 'yes', allergy: 'no', alone: '4to8', cats: 'yes', budget: 'yes', cannot: 'return', care: 'Gửi bố mẹ' };

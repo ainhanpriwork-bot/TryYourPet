@@ -81,26 +81,12 @@ export function bookableDays(openDays, now, count = BOOKING_DAYS) {
 export function apptEnd(dateKey, slot) { return vnInstant(dateKey, slot.end_hour + NO_SHOW_GRACE_HOURS); }
 
 /* ---------- adopter ---------- */
-/** Age in years from a 12-digit CCCD (4th digit = century and sex, 5th–6th = year of birth); null if malformed. */
-export function cccdAge(c, now = Date.now()) {
-  if (!/^\d{12}$/.test(c || '')) return null;
-  const g = +c[3];
-  if (g > 3) return null;
-  const year = (g < 2 ? 1900 : 2000) + +c.slice(4, 6);
-  return Number(vnDateKey(now).slice(0, 4)) - year;
-}
-
-export function validateCustomer(c, now = Date.now()) {
+export function validateCustomer(c) {
   const e = {};
   if (!c.name || String(c.name).trim().split(/\s+/).length < 2) e.name = 'Nhập đầy đủ họ và tên.';
   if (!PHONE_RE.test(normPhone(c.phone))) e.phone = 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.';
   if (!c.job || !String(c.job).trim()) e.job = 'Nhập nghề nghiệp.';
-  if (!/^\d{12}$/.test(c.cccd || '')) e.cccd = 'Số CCCD gồm đúng 12 chữ số.';
-  else {
-    const a = cccdAge(c.cccd, now);
-    if (a === null) e.cccd = 'Số CCCD không hợp lệ, kiểm tra lại số thứ 4.';
-    else if (a < 18) e.cccd = 'Người nhận nuôi cần đủ 18 tuổi.';
-  }
+  if (c.adult !== true) e.adult = 'Người nhận nuôi cần đủ 18 tuổi.';
   if (!c.address || !String(c.address).trim()) e.address = 'Nhập địa chỉ.';
   if (!c.district || !(DISTRICTS.includes(c.district) || c.district === OUTSIDE)) e.district = 'Chọn quận / huyện.';
   if (!EMAIL_RE.test(normEmail(c.email))) e.email = 'Email chưa đúng định dạng.';

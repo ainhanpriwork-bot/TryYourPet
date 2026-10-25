@@ -240,11 +240,11 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     const customer = {
       name: String(c.name || '').trim().slice(0, 120), phone: normPhone(c.phone), email: normEmail(c.email),
       address: String(c.address || '').trim().slice(0, 300), district: String(c.district || ''), job: String(c.job || '').trim().slice(0, 120),
-      cccd: String(c.cccd || '').trim()
+      adult: c.adult === true
     };
     const tokenEmail = readEmailToken(body.emailToken);
     if (!tokenEmail || tokenEmail !== customer.email) bad('Email chưa được xác thực hoặc đã hết hạn xác thực, vui lòng xác thực lại.', { email: 'Xác thực email trước khi gửi đơn.' });
-    const cErr = validateCustomer(customer, now());
+    const cErr = validateCustomer(customer);
     if (Object.keys(cErr).length) bad('Thông tin cá nhân chưa hợp lệ.', cErr);
 
     const holds = await myHolds(visitorId);
@@ -274,10 +274,10 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
       const end = new Date(apptEnd(date, slot));
       let row = null;
       for (let i = 0; i < 5 && !row; i++) {
-        row = (await tq(`insert into orders (code, status, pet_ids, station_id, name, phone, email, address, district, job, cccd, answers, flags, appt_date, slot_id, appt_end)
+        row = (await tq(`insert into orders (code, status, pet_ids, station_id, name, phone, email, address, district, job, adult_confirmed, answers, flags, appt_date, slot_id, appt_end)
           values ($1,$2,$3::uuid[],$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::date,$15,$16) on conflict (code) do nothing returning id, code`,
           [newCode('TYP'), status, holds.map(h => h.pet_id), holds[0].station_id, customer.name, customer.phone, customer.email, customer.address,
-           customer.district, customer.job, customer.cccd, JSON.stringify(cleanAnswers(answers, hasCat)), flags, date, slotId, end]))[0] || null;
+           customer.district, customer.job, customer.adult, JSON.stringify(cleanAnswers(answers, hasCat)), flags, date, slotId, end]))[0] || null;
       }
       if (!row) throw new HttpError(500, 'Chưa tạo được đơn, vui lòng thử lại.');
       await tq('update holds set order_id = $1, expires_at = $2 where visitor_id = $3 and order_id is null', [row.id, end, visitorId]);
@@ -290,7 +290,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     const when = fmtDay(date) + ', ' + order.slot.label;
     await sendMail(customer.email, status === 'confirmed' ? 'Đơn ' + order.code + ' đã được xác nhận' : 'TryYourPet đã nhận đơn ' + order.code, status === 'confirmed' ? [
       'Chào ' + customer.name + ',', 'Đơn nhận nuôi ' + names + ' của bạn đã được xác nhận.',
-      'Lịch đón bé: ' + when + '.', 'Nơi đón: ' + where + '.', 'Mang theo CCCD bản gốc' + (hasCat ? ' và lồng hoặc túi vận chuyển cho mèo.' : ' và dây dắt cho chó.'),
+      'Lịch đón bé: ' + when + '.', 'Nơi đón: ' + where + '.', 'Mang theo giấy tờ tùy thân có ảnh' + (hasCat ? ' và lồng hoặc túi vận chuyển cho mèo.' : ' và dây dắt cho chó.'),
       'Lịch không thể tự đổi hoặc hủy. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.'
     ] : [
       'Chào ' + customer.name + ',', 'TryYourPet đã nhận đơn nhận nuôi ' + names + '. Quản trị viên sẽ xem lại đơn và trả lời bạn qua email.',
@@ -359,7 +359,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     const t = new Date(now());
     const today = vnDateKey(now());
     const [orders, supports, pets, holds, stations, slots, st, emails] = await Promise.all([
-      q(`select id, code, status, pet_ids, station_id, name, phone, email, address, district, job, cccd, answers, flags, appt_date::text as appt_date,
+      q(`select id, code, status, pet_ids, station_id, name, phone, email, address, district, job, adult_confirmed, answers, flags, appt_date::text as appt_date,
            slot_id, appt_end, cancel_reason, decided_by, created_at from orders order by created_at desc limit 300`),
       q(`select id, code, type, target, amount, items, method, name, anon, email, phone, note, proof_path, status, decided_by, created_at
            from supports order by created_at desc limit 300`),
@@ -396,7 +396,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     if (action === 'approve') {
       await q(`update orders set status = 'confirmed', decided_by = $2 where id = $1`, [id, admin]);
       await sendMail(o.email, 'Đơn ' + o.code + ' đã được duyệt', ['Chào ' + o.name + ',', 'Đơn nhận nuôi ' + names + ' đã được duyệt.',
-        'Lịch đón bé: ' + fmtDay(o.appt_date) + ', ' + (slot ? slot.label : '') + '.', 'Nơi đón: ' + station.name + (station.address ? ', ' + station.address : '') + '. Mang theo CCCD bản gốc.',
+        'Lịch đón bé: ' + fmtDay(o.appt_date) + ', ' + (slot ? slot.label : '') + '.', 'Nơi đón: ' + station.name + (station.address ? ', ' + station.address : '') + '. Mang theo giấy tờ tùy thân có ảnh.',
         'Lịch không thể tự đổi hoặc hủy. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.']);
     } else if (action === 'reject' || action === 'noshow') {
       const reason = action === 'reject' ? 'Không đạt sàng lọc' : 'Không đến đúng hẹn';
@@ -540,7 +540,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     for (const o of due) {
       const names = (await q('select name from pets where id = any($1::uuid[])', [o.pet_ids])).map(p => p.name).join(' và ');
       await sendMail(o.email, 'Nhắc lịch: ngày mai đón ' + names, ['Chào ' + o.name + ',', 'Nhắc bạn lịch đón ' + names + ' vào ' + fmtDay(tomorrow) + ', ' + o.label + '.',
-        'Nơi đón: ' + o.station + (o.address ? ', ' + o.address : '') + '. Mang theo CCCD bản gốc.', 'Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.']);
+        'Nơi đón: ' + o.station + (o.address ? ', ' + o.address : '') + '. Mang theo giấy tờ tùy thân có ảnh.', 'Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.']);
       await q('update orders set reminded_at = $2 where id = $1', [o.id, t]);
     }
     await q('delete from otp_codes where expires_at <= $1', [new Date(now() - DAY)]);

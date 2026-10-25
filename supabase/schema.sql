@@ -62,7 +62,7 @@ create table if not exists orders (
   address       text not null,
   district      text not null,
   job           text not null,
-  cccd          text not null,
+  adult_confirmed boolean not null default false,
   answers       jsonb not null default '{}',
   flags         text[] not null default '{}',
   appt_date     date not null,

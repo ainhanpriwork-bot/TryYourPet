@@ -717,7 +717,7 @@ function viewHome(){
       <ul class="rules" style="margin-top:10px">
         <li>Mỗi đơn nhận tối đa ${MAX_PETS} bé, các bé cần ở cùng một trạm.</li>
         <li>Bé được giữ ${HOLD_DAYS} ngày kể từ lúc thêm vào nhà.</li>
-        <li>Bạn cần xác thực email và điền CCCD. Người nhận nuôi phải đủ 18 tuổi.</li>
+        <li>Bạn cần xác thực email. Người nhận nuôi phải đủ 18 tuổi.</li>
         <li>Đơn trả lời đạt các câu sàng lọc sẽ được xác nhận ngay. Đơn khác được quản trị viên xem lại.</li>
         <li>Không thể tự đổi hoặc hủy lịch. Không đến đúng hẹn thì đơn bị hủy và bé được nhả.</li>
       </ul>
@@ -745,9 +745,9 @@ function viewCheckout(){
       ${inp('name','Họ và tên','text','autocomplete="name"')}
       ${inp('phone','Số điện thoại','tel','autocomplete="tel" inputmode="tel" placeholder="09xx xxx xxx"')}
       ${inp('job','Nghề nghiệp')}
-      ${inp('cccd','Số CCCD (12 số)','text','inputmode="numeric" maxlength="12"')}
       ${inp('address','Số nhà, đường, phường','text','autocomplete="street-address"', true)}
       <label class="field full"><span>Quận / huyện</span><select id="d-district" data-f="district"><option value="">Chọn quận / huyện</option>${DISTRICTS.map(x => `<option ${d.district === x ? 'selected' : ''}>${x}</option>`).join('')}<option ${d.district === OUTSIDE ? 'selected' : ''}>${OUTSIDE}</option></select><span class="err">${esc(errors.district || '')}</span></label>
+      <label class="check full"><input type="checkbox" id="d-adult" data-adult ${d.adult ? 'checked' : ''}>Tôi xác nhận đã đủ 18 tuổi.<span class="err">${esc(errors.adult || '')}</span></label>
       <div class="field full"><span>Email (để nhận xác nhận đơn)</span>
         <div class="otp">
           <label class="field"><input id="d-email" type="email" data-f="email" value="${esc(d.email || '')}" autocomplete="email" aria-label="Email" ${d.verified ? 'readonly' : ''}></label>
@@ -770,7 +770,7 @@ function viewCheckout(){
     const slots = slotsFor();
     const stations = [...new Set(hs.map(h => pet(h.petId).station))];
     body = `<h2>Chọn lịch đón bé tại trạm</h2>
-    <div class="callout info" style="margin-top:12px">Đón bé tại: ${stations.map(s => '<b>'+STATIONS[s].name+'</b>, '+STATIONS[s].addr).join('; ')}. Nhớ mang theo CCCD bản gốc.</div>
+    <div class="callout info" style="margin-top:12px">Đón bé tại: ${stations.map(s => '<b>'+STATIONS[s].name+'</b>, '+STATIONS[s].addr).join('; ')}. Nhớ mang theo giấy tờ tùy thân có ảnh.</div>
     <div class="q"><span class="qt">Ngày nhận</span><div class="days">${days.map(k => { const dt = dparse(k); return `<button class="day" data-act="pickday" data-k="${k}" aria-pressed="${d.date === k}">${WEEKDAYS[dt.getDay()]}<b>${pad(dt.getDate())}/${pad(dt.getMonth()+1)}</b></button>`; }).join('')}</div>
       <p class="hint">Trạm nhận khách ${S.settings.openDays.map(x => WEEKDAYS[x]).join(', ')}. Bạn chọn được lịch trong ${days.length} ngày mở cửa tới.</p></div>
     <div class="q"><span class="qt">Khung giờ</span>
@@ -783,7 +783,7 @@ function viewCheckout(){
     body = `<h2>Xem lại và cam kết</h2>
     <dl class="review-list" style="margin-top:12px">
       <dt>Họ tên</dt><dd>${esc(d.name)}</dd><dt>Điện thoại</dt><dd>${esc(d.phone)}</dd><dt>Email</dt><dd>${esc(d.email)}</dd>
-      <dt>Địa chỉ</dt><dd>${esc(d.address)}, ${esc(d.district)}</dd><dt>Nghề nghiệp</dt><dd>${esc(d.job)}</dd><dt>CCCD</dt><dd>${esc(d.cccd.slice(0,3))}******${esc(d.cccd.slice(-3))}</dd>
+      <dt>Địa chỉ</dt><dd>${esc(d.address)}, ${esc(d.district)}</dd><dt>Nghề nghiệp</dt><dd>${esc(d.job)}</dd>
       <dt>Nơi đón bé</dt><dd>Tại trạm cứu hộ</dd><dt>Lịch nhận</dt><dd>${fmtDay(d.date)}, ${slot ? slot.label : ''}</dd>
     </dl>
     <div class="q" style="margin-top:8px"><span class="qt">Cam kết của người nhận nuôi</span>
@@ -803,19 +803,13 @@ function viewCheckout(){
     </aside></div>`;
 }
 
-function cccdAge(c){
-  const g = +c[3]; if (g > 3) return null;
-  const year = (g < 2 ? 1900 : 2000) + +c.slice(4,6);
-  return new Date().getFullYear() - year;
-}
 function validate(step){
   const d = S.draft; errors = {};
   if (step === 1){
     if (!d.name || d.name.trim().split(/\s+/).length < 2) errors.name = 'Nhập đầy đủ họ và tên.';
     if (!/^0(3|5|7|8|9)\d{8}$/.test((d.phone || '').replace(/[\s.]/g,''))) errors.phone = 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.';
     if (!d.job || !d.job.trim()) errors.job = 'Nhập nghề nghiệp.';
-    if (!/^\d{12}$/.test(d.cccd || '')) errors.cccd = 'Số CCCD gồm đúng 12 chữ số.';
-    else { const a = cccdAge(d.cccd); if (a === null) errors.cccd = 'Số CCCD không hợp lệ, kiểm tra lại số thứ 4.'; else if (a < 18) errors.cccd = 'Người nhận nuôi cần đủ 18 tuổi.'; }
+    if (!d.adult) errors.adult = 'Người nhận nuôi cần đủ 18 tuổi.';
     if (!d.address || !d.address.trim()) errors.address = 'Nhập địa chỉ.';
     if (!d.district) errors.district = 'Chọn quận / huyện.';
     if (!d.verified) errors.email = 'Xác thực email trước khi tiếp tục.';
@@ -847,7 +841,7 @@ function submitOrder(){
   mail(d.email, o.status === 'confirmed' ? 'Đơn '+id+' đã được xác nhận, lịch nhận '+fmtDay(d.date)+' '+slot.label : 'Đã nhận đơn '+id+', đang chờ trạm xem lại');
   mail('quanly@tryyourpet.vn', (o.status === 'confirmed' ? 'Đơn mới tự xác nhận ' : 'Đơn mới cần duyệt thủ công ')+id);
   S.lastOrder = id;
-  S.draft = { answers:{}, commits:{}, method:'station', name:d.name, phone:d.phone, email:d.email, verified:d.verified, address:d.address, district:d.district, job:d.job, cccd:d.cccd };
+  S.draft = { answers:{}, commits:{}, method:'station', name:d.name, phone:d.phone, email:d.email, verified:d.verified, address:d.address, district:d.district, job:d.job, adult:d.adult };
   S.step = 1; S.view = 'done';
 }
 
@@ -862,7 +856,7 @@ function viewDone(){
     <h1>${o.status === 'confirmed' ? 'Hẹn gặp bạn ngày đón <em>'+esc(names)+'</em>' : 'Đã nhận <em>đơn của bạn</em>'}</h1>
     <p>Mã đơn <span class="code">${o.id}</span></p>
     <dl class="review-list" style="text-align:left;justify-self:center">
-      <dt>Lịch nhận</dt><dd>${fmtDay(o.date)}, ${slot.label}</dd><dt>Nơi đón bé</dt><dd>${esc(where)}</dd><dt>Mang theo</dt><dd>CCCD bản gốc${o.pets.some(id => pet(id).species === 'cat') ? ', lồng hoặc túi vận chuyển cho mèo' : ', dây dắt cho chó'}</dd>
+      <dt>Lịch nhận</dt><dd>${fmtDay(o.date)}, ${slot.label}</dd><dt>Nơi đón bé</dt><dd>${esc(where)}</dd><dt>Mang theo</dt><dd>Giấy tờ tùy thân có ảnh${o.pets.some(id => pet(id).species === 'cat') ? ', lồng hoặc túi vận chuyển cho mèo' : ', dây dắt cho chó'}</dd>
     </dl>
     ${o.status === 'review' ? `<div class="callout warn">Quản trị viên sẽ xem lại đơn và trả lời qua email ${esc(o.customer.email)}. Bé vẫn được giữ cho bạn đến hết lịch hẹn.</div>` : `<div class="callout ok">Email xác nhận đã được gửi tới ${esc(o.customer.email)}.</div>`}
     <p class="hint">Lịch không thể tự đổi hoặc hủy. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.</p>
@@ -1024,6 +1018,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.q){ S.draft.answers[t.dataset.q] = t.value; render(); }
   else if (t.dataset.method){ S.draft.method = t.dataset.method; S.draft.slot = null; render(); }
   else if (t.dataset.c !== undefined){ S.draft.commits[t.dataset.c] = t.checked; save(); }
+  else if (t.dataset.adult !== undefined){ S.draft.adult = t.checked; errors.adult = ''; save(); }
   else if (t.dataset.openday !== undefined){ const x = +t.dataset.openday; S.settings.openDays = t.checked ? [...S.settings.openDays, x] : S.settings.openDays.filter(d => d !== x); render(); }
   else if (t.dataset.cap){ const s = slotById(t.dataset.cap); s.cap = Math.max(0, Math.min(20, +t.value || 0)); render(); }
   else if (t.dataset.s === 'target' || t.dataset.s === 'method'){ S.support[t.dataset.s] = t.value; render(); }

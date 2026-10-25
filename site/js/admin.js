@@ -133,7 +133,7 @@ function vOrders() {
         ${o.status === 'review' ? `<button class="btn small" data-act="order" data-a="approve" data-id="${o.id}">Duyệt</button><button class="btn small danger" data-act="order" data-a="reject" data-id="${o.id}">Từ chối</button>` : ''}
         ${o.status === 'confirmed' ? `<button class="btn small" data-act="order" data-a="complete" data-id="${o.id}">Đã giao bé</button><button class="btn small danger" data-act="order" data-a="noshow" data-id="${o.id}">Vắng mặt</button>` : ''}
         <button class="btn small ghost" data-act="toggle" data-id="${o.id}">${UI.open[o.id] ? 'Ẩn chi tiết' : 'Chi tiết'}</button></div>
-        ${UI.open[o.id] ? `<div class="detail"><div><b>Địa chỉ:</b> ${esc(o.address)}, ${esc(o.district)}</div><div><b>Nghề nghiệp:</b> ${esc(o.job)}</div><div><b>CCCD:</b> ${esc(o.cccd)}</div>${answersHtml(o)}</div>` : ''}</td></tr>`).join('')
+        ${UI.open[o.id] ? `<div class="detail"><div><b>Địa chỉ:</b> ${esc(o.address)}, ${esc(o.district)}</div><div><b>Nghề nghiệp:</b> ${esc(o.job)}</div><div><b>Xác nhận đủ 18 tuổi:</b> ${o.adult_confirmed ? 'Có' : 'Không'}</div>${answersHtml(o)}</div>` : ''}</td></tr>`).join('')
     : '<tr><td colspan="6" class="meta">Không có đơn ở trạng thái này.</td></tr>'}
     </tbody></table></div></section>`;
 }

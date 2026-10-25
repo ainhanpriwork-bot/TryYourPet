@@ -69,7 +69,7 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
 
 ## Vận hành hằng ngày
 
-- **Đơn chờ duyệt**: tab **Đơn nhận nuôi**. Bấm **Chi tiết** để xem CCCD, địa chỉ và câu trả lời sàng lọc, rồi **Duyệt** hoặc **Từ chối**.
+- **Đơn chờ duyệt**: tab **Đơn nhận nuôi**. Bấm **Chi tiết** để xem địa chỉ, nghề nghiệp và câu trả lời sàng lọc, rồi **Duyệt** hoặc **Từ chối**.
 - **Ngày đón bé**: khi giao bé xong, bấm **Đã giao bé**. Bé chuyển sang "Đã có nhà".
   - Khách không đến thì bấm **Vắng mặt**.
   - Nếu quên bấm, hệ thống tự hủy đơn 2 tiếng sau khi hết khung giờ hẹn và nhả bé.
@@ -98,4 +98,5 @@ npm run dev       # mở http://127.0.0.1:8888 và /admin.html, email in ra màn
   - Sức chứa mỗi khung giờ.
   - Bắt buộc xác thực email.
 - Ảnh minh chứng chuyển khoản nằm trong kho riêng tư. Trang quản trị chỉ mở bằng link có hạn 5 phút.
-- Số CCCD và địa chỉ của người nhận nuôi chỉ hiện trong trang quản trị. Theo Nghị định 13/2023/NĐ-CP, web nên có trang chính sách quyền riêng tư nói rõ mục đích thu CCCD, thời gian lưu, và cách người dùng yêu cầu xóa dữ liệu.
+- Web không thu số CCCD. Người nhận nuôi chỉ tick xác nhận đã đủ 18 tuổi và mang giấy tờ tùy thân khi đến trạm để đối chiếu tên.
+- Địa chỉ, số điện thoại và nghề nghiệp của người nhận nuôi chỉ hiện trong trang quản trị. Theo Nghị định 13/2023/NĐ-CP, web vẫn nên có trang chính sách quyền riêng tư nói rõ thu những thông tin gì, để làm gì, lưu bao lâu, và cách yêu cầu xóa.
