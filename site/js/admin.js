@@ -173,7 +173,7 @@ function petFormHtml() {
       <label class="check"><input type="checkbox" id="p-neutered" data-p="neutered" ${p.neutered ? 'checked' : ''}>Đã triệt sản</label>
       <label class="check"><input type="checkbox" id="p-published" data-p="published" ${p.published ? 'checked' : ''}>Hiện trên website</label>
       <label class="check"><input type="checkbox" id="p-adopted" data-p="adopted" ${p.adopted ? 'checked' : ''}>Đã có nhà</label>
-      <div class="field full"><span>Ảnh (tối đa 10 ảnh, JPG/PNG/WEBP, mỗi ảnh tối đa 4 MB)</span>
+      <div class="field full"><span>Ảnh (tối đa 10 ảnh, JPG/PNG/WEBP, mỗi ảnh tối đa 3 MB)</span>
         <div class="photos">${p.photos.map(u => `<figure class="${p.remove.includes(u) ? 'removed' : ''}"><img src="${esc(u)}" alt=""><button type="button" data-act="photoremove" data-u="${esc(u)}">${p.remove.includes(u) ? 'Giữ lại' : 'Xóa'}</button></figure>`).join('')}
           ${p.newFiles.map((f, i) => `<figure><img src="${f.url}" alt=""><button type="button" data-act="photodrop" data-i="${i}">Bỏ</button></figure>`).join('')}</div>
         <input type="file" id="p-files" accept="image/jpeg,image/png,image/webp" multiple>${err('photos')}</div>
@@ -338,7 +338,7 @@ document.addEventListener('change', e => {
       if (!PHOTO_TYPES.includes(f.type) || f.size > FILE_MAX) bad.push(f.name);
       else UI.petForm.newFiles.push({ file: f, url: URL.createObjectURL(f) });
     });
-    UI.petErr = bad.length ? { photos: 'Bỏ qua ' + bad.join(', ') + ': chỉ nhận ảnh JPG, PNG, WEBP tối đa 4 MB.' } : {};
+    UI.petErr = bad.length ? { photos: 'Bỏ qua ' + bad.join(', ') + ': chỉ nhận ảnh JPG, PNG, WEBP tối đa 3 MB.' } : {};
     render();
   }
 });

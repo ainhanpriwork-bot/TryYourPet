@@ -1,5 +1,5 @@
 // TryYourPet API: every rule that matters is enforced here, never only in the browser.
-// createApp() takes its dependencies so the same code runs on Netlify and in the local tests:
+// createApp() takes its dependencies so the same code runs on Vercel and in the local tests:
 //   db:      { query(text, params) -> rows, tx(fn(q) -> result) }
 //   mailer:  { send({ to, subject, text, html }) }
 //   storage: { upload(bucket, path, bytes, type), publicUrl(bucket, path), signedUrl(bucket, path, seconds), remove(bucket, paths) }
@@ -11,7 +11,7 @@ import {
   HOLD_DAYS, MAX_PETS, COMMITS, ITEMS, PROOF_TYPES, PHOTO_TYPES, FILE_MAX, BANK, OUTSIDE,
   bookableDays, apptEnd, vnDateKey, addDays, weekdayOf, validateCustomer, validateAnswers, evaluateFlags,
   cleanAnswers, validateSupport, cleanItems, itemsText, fmtVND, normEmail, normPhone, EMAIL_RE
-} from '../../site/js/rules.js';
+} from '../site/js/rules.js';
 
 const DAY = 864e5;
 const OTP_TTL_MIN = 10, OTP_RESEND_S = 60, OTP_MAX_TRIES = 5, VERIFY_TTL_H = 3;
@@ -48,7 +48,8 @@ export class HttpError extends Error {
 }
 const bad = (msg, fields) => { throw new HttpError(400, msg, fields); };
 
-export function createApp({ db, mailer, storage, auth, config, now = () => Date.now() }) {
+export function createApp({ db, mailer, storage, auth, config, now = () => Date.now(), autoMaintenanceMs = 0 }) {
+  let lastSweep = 0;
   const q = (text, params) => db.query(text, params);
   const one = async (text, params) => (await q(text, params))[0] || null;
   const ms = v => (v == null ? null : new Date(v).getTime());
@@ -132,7 +133,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     if (!types.includes(f.type)) bad(label[0].toUpperCase() + label.slice(1) + ' phải là ' + (types.includes('application/pdf') ? 'ảnh JPG, PNG, WEBP hoặc PDF.' : 'ảnh JPG, PNG hoặc WEBP.'));
     const bytes = Buffer.from(f.data, 'base64');
     if (!bytes.length) bad(label[0].toUpperCase() + label.slice(1) + ' bị rỗng.');
-    if (bytes.length > FILE_MAX) bad(label[0].toUpperCase() + label.slice(1) + ' lớn hơn 4 MB, chọn file nhỏ hơn.');
+    if (bytes.length > FILE_MAX) bad(label[0].toUpperCase() + label.slice(1) + ' lớn hơn 3 MB, chọn file nhỏ hơn.');
     // The declared type must match the file's own signature, so a renamed file cannot slip through.
     const sig = {
       'image/jpeg': b => b[0] === 0xff && b[1] === 0xd8,
@@ -572,6 +573,12 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     const fn = routes[key];
     if (!fn) return { status: 404, body: { error: 'Không tìm thấy đường dẫn.' } };
     try {
+      // The free hosting cron runs once a day, so the hourly clean-up (expired holds, missed appointments,
+      // reminders) also runs when someone opens the site, at most once per autoMaintenanceMs.
+      if (autoMaintenanceMs && (key === 'GET catalog' || key === 'GET admin/overview') && now() - lastSweep >= autoMaintenanceMs) {
+        lastSweep = now();
+        try { await maintenance(); } catch (e) { console.error('maintenance', e); }
+      }
       const admin = key.includes(' admin/') ? await requireAdmin(headers) : null;
       return { status: 200, body: await fn({ query, body: body || {}, headers, admin }) };
     } catch (e) {

@@ -4,7 +4,7 @@ Web gồm 3 phần, đều có gói miễn phí:
 
 | Phần | Dịch vụ | Làm gì |
 |---|---|---|
-| Website và máy chủ | Netlify | Hiển thị trang, chạy các xử lý (giữ chỗ, đơn, hỗ trợ), tự hủy đơn trễ hẹn mỗi giờ |
+| Website và máy chủ | Vercel | Hiển thị trang, chạy các xử lý (giữ chỗ, đơn, hỗ trợ), tự dọn giữ chỗ quá hạn và đơn trễ hẹn |
 | Cơ sở dữ liệu, đăng nhập, lưu ảnh | Supabase | Lưu các bé, đơn, hỗ trợ; tài khoản quản trị; ảnh bé và ảnh minh chứng |
 | Email | Gmail của dự án | Gửi mã xác thực, xác nhận đơn, nhắc lịch, thông báo cho quản trị viên |
 
@@ -27,7 +27,7 @@ Làm lần lượt 4 bước dưới đây. Mỗi bước khoảng 5–10 phút.
        ('nguoi4@gmail.com'), ('nguoi5@gmail.com'), ('nguoi6@gmail.com');
      ```
    Chỉ email vừa có tài khoản ở Authentication vừa nằm trong bảng `admins` mới vào được trang quản trị.
-4. Vào **Authentication → URL Configuration**, điền **Site URL** là địa chỉ Netlify (ví dụ `https://tryyourpet.netlify.app`). Link "Quên mật khẩu" sẽ dẫn về đây.
+4. Vào **Authentication → URL Configuration**, điền **Site URL** là địa chỉ Vercel (ví dụ `https://tryyourpet.vercel.app`). Link "Quên mật khẩu" sẽ dẫn về đây.
 
 ## Bước 2. Chuẩn bị Gmail của dự án
 
@@ -37,24 +37,27 @@ Làm lần lượt 4 bước dưới đây. Mỗi bước khoảng 5–10 phút.
 
 Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tại.
 
-## Bước 3. Kết nối Netlify
+## Bước 3. Kết nối Vercel
 
-1. Vào https://app.netlify.com → **Add new project → Import an existing project → GitHub**, chọn repo **TryYourPet**.
-   Netlify tự đọc cấu hình từ `netlify.toml`, không cần sửa gì.
-2. Trước khi bấm **Deploy**, vào **Environment variables** và thêm từng biến theo file `.env.example`:
+1. Vào https://vercel.com/signup, chọn **Continue with GitHub** (dùng tài khoản GitHub chứa repo TryYourPet), chọn gói **Hobby** (miễn phí).
+2. Bấm **Add New… → Project**, ở dòng repo **TryYourPet** bấm **Import**. Nếu không thấy repo, bấm **Adjust GitHub App Permissions** và cho Vercel xem repo này.
+3. Ở trang cấu hình: **Framework Preset** để **Other**, không sửa Build/Output (Vercel đọc từ `vercel.json`).
+4. Mở mục **Environment Variables** và thêm từng biến theo file `.env.example`:
 
 | Biến | Lấy ở đâu |
 |---|---|
-| `DATABASE_URL` | Supabase → Project Settings → Database → Connection string → **URI**, chọn **Transaction pooler**, thay `[YOUR-PASSWORD]` bằng mật khẩu database |
-| `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
-| `SUPABASE_ANON_KEY` | Cùng trang, khóa **anon public** |
-| `SUPABASE_SERVICE_ROLE_KEY` | Cùng trang, khóa **service_role**. **Bí mật, không gửi cho ai.** |
+| `DATABASE_URL` | Supabase → nút **Connect** → **Connection String** → mục **Transaction pooler** (địa chỉ có `pooler.supabase.com`, cổng `6543`), thay `[YOUR-PASSWORD]` bằng mật khẩu database. **Không** dùng mục Direct connection (`db.xxx.supabase.co`). |
+| `SUPABASE_URL` | Supabase → Project Settings → Data API (hoặc API) → Project URL |
+| `SUPABASE_ANON_KEY` | Supabase → Project Settings → API Keys, khóa **anon public** hoặc **publishable** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Cùng trang, khóa **service_role** hoặc **secret**. **Bí mật.** |
 | `GMAIL_USER` | Địa chỉ Gmail của dự án |
-| `GMAIL_APP_PASSWORD` | 16 ký tự ở bước 2, viết liền không dấu cách |
-| `NOTIFY_EMAIL` | Email nhận thông báo đơn mới (có thể bỏ trống, mặc định gửi về Gmail dự án) |
-| `TOKEN_SECRET` | Một chuỗi ngẫu nhiên dài, ví dụ gõ bừa 50 ký tự |
+| `GMAIL_APP_PASSWORD` | 16 ký tự ở bước 2, viết liền |
+| `NOTIFY_EMAIL` | Email nhận thông báo đơn mới (có thể bỏ trống) |
+| `TOKEN_SECRET` | Một chuỗi ngẫu nhiên dài khoảng 50 ký tự |
+| `CRON_SECRET` | Một chuỗi ngẫu nhiên khác, khoảng 30 ký tự |
 
-3. Bấm **Deploy**. Sau khoảng 1–2 phút, web chạy tại địa chỉ dạng `ten-ngau-nhien.netlify.app`. Đổi tên trong **Project configuration → Change project name**.
+5. Bấm **Deploy**. Sau 1–2 phút web chạy tại địa chỉ dạng `tryyourpet.vercel.app`. Đổi tên trong **Settings → Domains** nếu muốn.
+6. Sửa biến về sau: **Settings → Environment Variables**, rồi vào **Deployments**, ở bản mới nhất bấm **⋯ → Redeploy** để áp dụng. Gói Hobby không tính tiền theo lần deploy.
 
 ## Bước 4. Nhập dữ liệu và chạy thử
 
@@ -72,7 +75,7 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
   - Nếu quên bấm, hệ thống tự hủy đơn 2 tiếng sau khi hết khung giờ hẹn và nhả bé.
 - **Hỗ trợ bằng tiền**: tab **Hỗ trợ** → **Xem minh chứng**, đối chiếu với sao kê Vietcombank, rồi bấm **Đã nhận tiền** hoặc **Không khớp**. Người hỗ trợ nhận email báo kết quả.
 - **Email**: tab **Email** liệt kê 20 email gần nhất. Email gửi lỗi được đánh dấu đỏ.
-- **Tự động mỗi giờ**:
+- **Tự động**: mỗi khi có người mở web (tối đa 10 phút một lần) và mỗi sáng 7 giờ, hệ thống:
   - Nhả các bé giữ chỗ quá 7 ngày.
   - Hủy đơn trễ hẹn.
   - Gửi email nhắc lịch cho khách có hẹn ngày mai.
@@ -81,13 +84,13 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
 
 ```bash
 npm install
-npm test          # 11 bài kiểm tra cho toàn bộ máy chủ, chạy trên Postgres giả lập
+npm test          # 15 bài kiểm tra cho toàn bộ máy chủ, chạy trên Postgres giả lập
 npm run dev       # mở http://127.0.0.1:8888 và /admin.html, email in ra màn hình
 ```
 
 ## Bảo mật và dữ liệu cá nhân
 
-- Trình duyệt không bao giờ đọc thẳng cơ sở dữ liệu. Mọi bảng đều bật row level security và không có policy nào. Chỉ máy chủ Netlify, dùng mật khẩu database, mới đọc ghi dữ liệu.
+- Trình duyệt không bao giờ đọc thẳng cơ sở dữ liệu. Mọi bảng đều bật row level security và không có policy nào. Chỉ máy chủ Vercel, dùng mật khẩu database, mới đọc ghi dữ liệu.
 - Mọi quy tắc đều được máy chủ kiểm tra lại, nên sửa mã trên trình duyệt cũng không vượt qua được:
   - Tối đa 2 bé mỗi đơn, các bé cùng một trạm.
   - Giữ chỗ 7 ngày.

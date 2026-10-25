@@ -1,4 +1,4 @@
-// Adoption and support rules shared by the browser and the server (Netlify Functions).
+// Adoption and support rules shared by the browser and the server (Vercel Functions).
 // The browser uses them to show errors early; the server re-checks everything before saving.
 
 export const HOLD_DAYS = 7;
@@ -8,7 +8,7 @@ export const NO_SHOW_GRACE_HOURS = 2;    // an order is cancelled this long afte
 export const MIN_AMOUNT = 10000;
 export const PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const FILE_MAX = 4 * 1024 * 1024; // 4 MB: request bodies to Netlify Functions are capped at 6 MB
+export const FILE_MAX = 3 * 1024 * 1024; // 3 MB: Vercel caps request bodies at 4.5 MB and base64 adds a third
 export const VN_OFFSET_H = 7;            // Vietnam is UTC+7 all year
 
 export const BANK = { bank: 'Vietcombank', number: '1026229658', holder: 'DANG HUONG GIANG', role: 'Project Manager TryYourPet', qr: 'assets/vcb-qr.png' };

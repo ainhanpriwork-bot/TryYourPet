@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { createApp } from '../netlify/lib/app.mjs';
+import { createApp } from '../server/app.mjs';
 
 const PORT = Number(process.env.PORT || 8888);
 const SITE = new URL('../site/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');

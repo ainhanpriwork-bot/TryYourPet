@@ -2,7 +2,7 @@
 // with fake email, storage and admin login so no account or network is needed.
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { createApp } from '../netlify/lib/app.mjs';
+import { createApp } from '../server/app.mjs';
 
 export const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex').toString('base64');
 export const ADMIN_TOKEN = 'admin-token', OUTSIDER_TOKEN = 'outsider-token';

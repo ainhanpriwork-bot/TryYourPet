@@ -14,21 +14,21 @@ TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ v�
   - Đối soát hỗ trợ qua ảnh minh chứng.
   - Quản lý hồ sơ và ảnh các bé, thông tin trạm, ngày mở cửa và sức chứa khung giờ.
   - Xem nhật ký email.
-- **Tự động mỗi giờ**: nhả bé giữ chỗ quá hạn, hủy đơn trễ hẹn, nhắc lịch trước 1 ngày.
+- **Tự động** (khi có người truy cập và mỗi sáng): nhả bé giữ chỗ quá hạn, hủy đơn trễ hẹn, nhắc lịch trước 1 ngày.
 
 ## Cấu trúc
 
 ```
-site/                   Website tĩnh do Netlify phục vụ
+site/                   Website tĩnh do Vercel phục vụ
   index.html, js/app.js       Trang khách hàng
   admin.html, js/admin.js     Trang quản trị
   js/rules.js                 Quy tắc dùng chung cho trình duyệt và máy chủ
   css/app.css, assets/        Giao diện, logo, mascot, font, mã QR
-netlify/
-  functions/api.mjs           Đường dẫn /api/*
-  functions/maintenance.mjs   Tác vụ chạy mỗi giờ
-  lib/app.mjs                 Toàn bộ xử lý nghiệp vụ
-  lib/deps.mjs                Kết nối Supabase (Postgres, Storage, Auth) và Gmail
+api/handler.js              Hàm Vercel nhận mọi đường dẫn /api/* (xem vercel.json)
+server/
+  app.mjs                     Toàn bộ xử lý nghiệp vụ
+  http.mjs                    Đọc yêu cầu, tác vụ dọn dẹp hằng ngày (cron)
+  deps.mjs                    Kết nối Supabase (Postgres, Storage, Auth) và Gmail
 supabase/schema.sql, storage.sql   Tạo cơ sở dữ liệu và kho file
 tests/                      Bài kiểm tra máy chủ và máy chủ chạy thử trên máy
 prototype/tryyourpet.html   Bản demo một file (link Claude), dữ liệu lưu trên trình duyệt

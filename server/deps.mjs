@@ -1,4 +1,4 @@
-// Real dependencies for Netlify: Postgres (Supabase), Supabase Storage and Auth, Gmail SMTP.
+// Real dependencies on Vercel: Postgres (Supabase), Supabase Storage and Auth, Gmail SMTP.
 // Configured entirely by environment variables; see .env.example.
 import pg from 'pg';
 import nodemailer from 'nodemailer';
@@ -74,10 +74,11 @@ export function getApp() {
 
   app = createApp({
     db, storage, auth, mailer,
+    autoMaintenanceMs: 10 * 60e3,
     config: {
       tokenSecret: env('TOKEN_SECRET'),
       notifyEmail: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER || '',
-      siteUrl: process.env.URL || process.env.SITE_URL || '',
+      siteUrl: process.env.SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : ''),
       supabaseUrl: env('SUPABASE_URL'),
       supabaseAnonKey: env('SUPABASE_ANON_KEY')
     }

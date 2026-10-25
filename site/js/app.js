@@ -367,7 +367,7 @@ function viewSupport() {
       <div class="field"><span>Ảnh chụp minh chứng chuyển khoản</span>
         <input type="file" id="s-proof" accept="image/jpeg,image/png,image/webp,application/pdf">
         ${proofDraft ? `<div class="proof">${proofDraft.file.type.startsWith('image/') ? `<img src="${proofDraft.url}" alt="Minh chứng chuyển khoản đã chọn">` : ''}<span>${esc(proofDraft.file.name)}, ${Math.ceil(proofDraft.file.size / 1024)} KB</span></div>` : ''}
-        <span class="hint">Ảnh chụp màn hình giao dịch thành công (JPG, PNG, WEBP hoặc PDF, tối đa 4 MB).</span>
+        <span class="hint">Ảnh chụp màn hình giao dịch thành công (JPG, PNG, WEBP hoặc PDF, tối đa 3 MB).</span>
         <span class="err">${esc(supErr.proof || '')}</span></div></div>`;
   const goods = `
     <div class="q"><span class="qt">Chọn đồ và số lượng</span>
@@ -512,7 +512,7 @@ document.addEventListener('change', e => {
     const f = t.files && t.files[0];
     if (!f) return;
     if (!PROOF_TYPES.includes(f.type)) supErr.proof = 'Chỉ nhận ảnh JPG, PNG, WEBP hoặc file PDF.';
-    else if (f.size > FILE_MAX) supErr.proof = 'File lớn hơn 4 MB, chọn ảnh nhỏ hơn.';
+    else if (f.size > FILE_MAX) supErr.proof = 'File lớn hơn 3 MB, chọn ảnh nhỏ hơn.';
     else { if (proofDraft) URL.revokeObjectURL(proofDraft.url); proofDraft = { file: f, url: URL.createObjectURL(f) }; supErr.proof = ''; }
     render();
   }
