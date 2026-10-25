@@ -28,6 +28,16 @@ Mở `tryyourpet.html` qua một máy chủ tĩnh bất kỳ (font và ảnh n�
 npx serve .
 ```
 
+## Triển khai lên Netlify
+
+`netlify.toml` đã cấu hình sẵn: Netlify chạy `node scripts/build.mjs`, script này bọc `tryyourpet.html` thành trang `dist/index.html` hoàn chỉnh và chép `assets/`, rồi xuất bản thư mục `dist/`. Mỗi lần push lên nhánh `main`, Netlify tự build và cập nhật website.
+
+Build thử trên máy:
+
+```bash
+node scripts/build.mjs
+```
+
 ## Ghi chú
 
 Editorial New và Neulis Sans là font có bản quyền của bên phát hành. Kiểm tra giấy phép trước khi dùng lại.
