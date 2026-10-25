@@ -277,6 +277,8 @@ footer .wrap{padding-block:18px;display:flex;justify-content:space-between;gap:1
   .hero{border-radius:22px}
   .flow{grid-template-columns:1fr 1fr}
   .support-head{flex-direction:column;align-items:flex-start}
+  .nav{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .nav button{flex:none;padding:7px 10px}
   .form-grid{grid-template-columns:1fr}
   .row-pet{grid-template-columns:72px 1fr}
   .row-pet .mini{width:72px}
@@ -687,7 +689,7 @@ function viewHome(){
     <aside class="panel">
       <h3>Trước khi gửi đơn</h3>
       <ul class="rules" style="margin-top:10px">
-        <li>Mỗi đơn nhận tối đa ${MAX_PETS} bé.</li>
+        <li>Mỗi đơn nhận tối đa ${MAX_PETS} bé, các bé cần ở cùng một trạm.</li>
         <li>Bé được giữ ${HOLD_DAYS} ngày kể từ lúc thêm vào nhà.</li>
         <li>Bạn cần xác thực email và điền CCCD. Người nhận nuôi phải đủ 18 tuổi.</li>
         <li>Đơn trả lời đạt các câu sàng lọc sẽ được xác nhận ngay. Đơn khác được quản trị viên xem lại.</li>
@@ -697,7 +699,7 @@ function viewHome(){
     </aside></div>`;
 }
 
-const STEPS = ['Thông tin cá nhân','Câu hỏi sàng lọc','Lịch nhận bé','Xem lại & cam kết'];
+const STEPS = ['Thông tin cá nhân','Câu hỏi sàng lọc','Lịch đón bé','Xem lại & cam kết'];
 let errors = {};
 function inp(id, label, type = 'text', extra = '', full = false){
   const d = S.draft;
@@ -796,7 +798,7 @@ function validate(step){
     if (d.answers.cannot === 'other' && !(d.answers.cannotText || '').trim()) errors['q-cannot'] = 'Mô tả phương án của bạn.';
     if (!(d.answers.care || '').trim()) errors['q-care'] = 'Cho trạm biết ai sẽ chăm bé khi bạn vắng nhà.';
   } else if (step === 3){
-    if (!d.date || !d.slot) errors.slot = 'Chọn ngày và khung giờ nhận bé.';
+    if (!d.date || !d.slot) errors.slot = 'Chọn ngày và khung giờ đón bé.';
     else if (booked(d.method, d.date, d.slot) >= slotById(d.slot).cap) errors.slot = 'Khung giờ này vừa kín, chọn khung khác.';
   } else {
     if (COMMITS.some((_,i) => !d.commits[i])) errors.commits = 'Cần đồng ý tất cả cam kết để gửi đơn.';
@@ -924,6 +926,8 @@ function closeModal(){ const m = document.getElementById('modal'); m.hidden = tr
 function addPet(id){
   if (petState(id) !== 'available') return toast('Bé này hiện không còn trống.');
   if (myHolds().length >= MAX_PETS) return toast('Mỗi đơn nhận tối đa '+MAX_PETS+' bé. Bỏ bớt một bé trong nhà trước.');
+  const first = myHolds()[0];
+  if (first && pet(first.petId).station !== pet(id).station) return toast('Các bé trong một đơn cần ở cùng một trạm để bạn đón một lần. '+pet(first.petId).name+' đang ở '+STATIONS[pet(first.petId).station].name+'.');
   S.holds.push({ petId:id, owner:'me', until:Date.now() + HOLD_DAYS*DAY });
   toast('Đã thêm '+pet(id).name+' vào nhà. Bé được giữ cho bạn '+HOLD_DAYS+' ngày.');
 }
