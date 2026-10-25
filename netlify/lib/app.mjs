@@ -30,6 +30,11 @@ export function setupHint(e) {
   if (code === '42P01') return 'chưa tạo bảng, hãy chạy supabase/schema.sql';
   if (code === '3D000') return 'DATABASE_URL: sai tên database, phải là postgres';
   if (/self.signed|certificate/i.test(msg)) return 'lỗi chứng chỉ SSL khi kết nối database';
+  if (code === 'XX000') {
+    // Supabase's pooler explains refusals in plain words; drop anything URL- or credential-shaped first.
+    const safe = msg.replace(/\S*[@:/]\S*/g, '…').replace(/["'`]/g, '').slice(0, 120);
+    return 'DATABASE_URL bị pooler từ chối: ' + safe;
+  }
   // Error codes and class names carry no data, so they are safe to show and let the cause be looked up.
   return 'mã lỗi: ' + (code || (e && e.name) || 'không rõ');
 }
