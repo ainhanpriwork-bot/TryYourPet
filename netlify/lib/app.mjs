@@ -24,7 +24,11 @@ export function setupHint(e) {
   const code = e && e.code, msg = String(e && e.message || '');
   if (code === '28P01' || /password authentication failed/i.test(msg)) return 'DATABASE_URL: sai mật khẩu database';
   if (/Tenant or user not found/i.test(msg)) return 'DATABASE_URL: sai tên người dùng, cần dạng postgres.<mã project>';
-  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'DATABASE_URL: không tìm thấy máy chủ database, kiểm tra lại địa chỉ';
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+    // The host name is not a secret (the project URL is public), and seeing it shows which part of the string is wrong.
+    const host = String(e.hostname || '').replace(/[^A-Za-z0-9.-]/g, '').slice(0, 80);
+    return 'DATABASE_URL: không tìm thấy máy chủ database' + (host ? ' "' + host + '"' : '') + ', kiểm tra lại địa chỉ';
+  }
   if (code === 'ENETUNREACH' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || /timeout/i.test(msg)) return 'DATABASE_URL: không kết nối được, hãy dùng chuỗi Transaction pooler (cổng 6543)';
   if (code === 'ERR_INVALID_URL' || /Invalid URL|invalid connection/i.test(msg)) return 'DATABASE_URL: chuỗi kết nối không đúng định dạng';
   if (code === '42P01') return 'chưa tạo bảng, hãy chạy supabase/schema.sql';
