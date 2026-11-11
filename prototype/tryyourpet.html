@@ -78,27 +78,7 @@ main{padding-block:28px 64px}
 .hero h1 em{display:block}
 .hero p.lead{opacity:.9;font-size:16px;max-width:52ch}
 .hero-cta{display:flex;gap:10px;flex-wrap:wrap}
-.support-head{display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--sun);color:#000;border-radius:28px;padding-block:clamp(22px,4vw,44px);padding-inline:clamp(22px,4vw,44px);margin-bottom:20px}
-.support-head h1 em{color:var(--cobalt)}
-.support-head .lead{font-size:16px;max-width:58ch;margin-top:12px}
-.support-mascot{width:190px;max-width:34%;flex:none}
-.items{display:grid}
-.bank{display:flex;gap:18px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:8px}
-.bank img{width:150px;height:150px;border-radius:8px;background:#fff;padding:4px;flex:none}
-.bank .review-list{flex:1;min-width:220px}
-.proof{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
-.proof img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
-input[type=file]{font-size:14px;max-width:100%}
-.acct{font-size:17px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 a{color:var(--accent)}
-.item-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-block:9px;border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:14px}
-.item-row:last-child{border-bottom:0}
-.qty{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.qty input{width:84px}
-.need-block{padding-block:12px;border-bottom:1px solid var(--line);display:grid;gap:6px}
-.need-block:last-of-type{border-bottom:0}
-button.choice{background:var(--surface);font:inherit}
-.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .btn.on-band{color:var(--band-ink);border-color:rgba(255,255,255,.5)}
 .hero-art{position:relative;background:var(--sun);min-height:320px}
 .hero-art img,.hero-art svg{position:absolute;object-fit:contain;max-width:none}
@@ -237,7 +217,7 @@ fieldset.q{border:0;margin:0;border-bottom:1px solid var(--line);padding-inline:
 .code{font-family:ui-monospace,Consolas,monospace;font-size:20px;font-weight:700;letter-spacing:.04em;background:var(--sunk);padding:6px 14px;border-radius:8px;display:inline-block}
 
 /* admin */
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-block:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-block:18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .kpi b{font-family:var(--font-display);font-weight:200;font-size:48px;color:var(--accent);line-height:1;display:block;font-variant-numeric:tabular-nums}
 .kpi span{font-size:13px;color:var(--muted)}
@@ -279,7 +259,6 @@ footer .wrap{padding-block:18px;display:flex;justify-content:space-between;gap:1
 @media (max-width:560px){
   .hero{border-radius:22px}
   .flow{grid-template-columns:1fr 1fr}
-  .support-head{flex-direction:column;align-items:flex-start}
   .nav{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .nav button{flex:none;padding:7px 10px}
   .form-grid{grid-template-columns:1fr}
@@ -302,14 +281,13 @@ footer .wrap{padding-block:18px;display:flex;justify-content:space-between;gap:1
 <div id="toast" hidden></div>
 
 <script>
-const DAY = 864e5, HOLD_DAYS = 7, MAX_PETS = 2, LS = 'tryyourpet-demo-v3';
+const DAY = 864e5, HOLD_DAYS = 7, MAX_PETS = 2, LS = 'tryyourpet-demo-v4';
 
 const STATIONS = {
   VML: { name: 'Vườn Mèo Lang Thang', area: 'TP.HCM', addr: 'địa chỉ đón bé cập nhật sau', fb: 'https://www.facebook.com/vuonmeolangthang/', email: 'vuonmeolangthangoffical@gmail.com' },
   PN: { name: 'Purr Nature', area: 'TP.HCM', addr: 'địa chỉ đón bé cập nhật sau', fb: 'https://www.facebook.com/purr.nature.store', email: 'purr.nature@gmail.com' },
   TD: { name: 'Trạm cứu hộ chó (mẫu)', area: 'TP. Thủ Đức', addr: '88 Lê Văn Việt, P. Hiệp Phú, TP. Thủ Đức (địa chỉ mẫu)' }
 };
-const BANK = { bank: 'Vietcombank', number: '1026229658', holder: 'DANG HUONG GIANG', role: 'Project Manager TryYourPet', qr: 'assets/vcb-qr.png' };
 const fbLink = st => st.fb ? `<br><a href="${st.fb}" target="_blank" rel="noopener">Trang Facebook của trạm</a>` : '';
 
 const PETS = [
@@ -388,11 +366,6 @@ function seed(){
     filters:{ species:'all', breed:'all', sex:'all', weight:'all' },
     holds:[ { petId:'P04', owner:'other', until:o1.apptEnd, orderId:o1.id }, { petId:'P07', owner:'other', until:o2.apptEnd, orderId:o2.id }, { petId:'P02', owner:'other', until:now+4*DAY } ],
     orders:[o1,o2,o3],
-    supports:[
-      { id:'HT-1024-0112', type:'items', target:'pet:P03', items:{ dogfood:5, pad:2 }, method:'dropoff', name:'Võ Ngọc Lan', anon:true, contact:'ngoclan@example.com', status:'pending', createdAt:now-DAY, example:true },
-      { id:'HT-1022-0107', type:'cash', target:'station:VML', amount:500000, name:'Phạm Gia Huy', anon:false, contact:'giahuy@example.com', status:'received', createdAt:now-3*DAY, example:true }
-    ],
-    support:{ type:'cash', target:'all', amount:200000, items:{}, method:'dropoff' }, lastSupport:null,
     adopted:{ P11:now-5*DAY },
     emails:[ { to:'minhanh@example.com', subject:'Đơn TYP-1024-0031 đã được xác nhận', at:now-2*DAY }, { to:'quanly@tryyourpet.vn', subject:'Đơn TYP-1024-0032 cần duyệt thủ công', at:now-DAY } ],
     draft:{ answers:{}, commits:{}, method:'station' }
@@ -445,7 +418,6 @@ function renderNav(){
   const n = myHolds().length, v = S.view;
   document.getElementById('nav').innerHTML = `
     <button data-act="go" data-view="list" aria-current="${v === 'list'}">Thú cưng</button>
-    <button data-act="go" data-view="support" aria-current="${v === 'support'}">Hỗ trợ bé</button>
     <button data-act="go" data-view="home" aria-current="${v === 'home' || v === 'checkout'}">Nhà của tôi <span class="count" aria-label="${n} bé">${n}</span></button>
     ${IS_ADMIN ? `<button data-act="go" data-view="admin" aria-current="${v === 'admin'}">Quản trị</button>` : ''}`;
 }
@@ -462,7 +434,7 @@ async function detectAdmin(){
 function render(){
   if (S.view === 'admin' && !IS_ADMIN) S.view = 'list';
   sweep(); save(); renderNav();
-  ({ list:viewList, support:viewSupport, home:viewHome, checkout:viewCheckout, done:viewDone, admin:viewAdmin })[S.view]();
+  ({ list:viewList, home:viewHome, checkout:viewCheckout, done:viewDone, admin:viewAdmin })[S.view]();
 }
 
 function filtered(){
@@ -488,8 +460,8 @@ function viewList(){
   <section class="hero">
     <div class="hero-text">
       <h1>Anh Chị tới, <em>thương bé cả đời!</em></h1>
-      <p class="lead">TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng nhằm tìm mái nhà phù hợp cho các bé chó, mèo trên khu vực TP.HCM thông qua hệ thống nhận nuôi hoặc hỗ trợ hiện kim, hiện vật đến với các bé.</p>
-      <div class="hero-cta"><button class="btn add" data-act="scrollpets">Xem ${waiting} bé đang chờ</button><button class="btn ghost on-band" data-act="go" data-view="support">Hỗ trợ các bé</button></div>
+      <p class="lead">TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng nhằm tìm mái nhà phù hợp cho các bé chó, mèo trên khu vực TP.HCM thông qua hệ thống nhận nuôi.</p>
+      <div class="hero-cta"><button class="btn add" data-act="scrollpets">Xem ${waiting} bé đang chờ</button></div>
     </div>
     <div class="hero-art" aria-hidden="true">
       <img class="bone" src="assets/bone.png" alt="">
@@ -553,147 +525,11 @@ function renderDetail(id){
       </dl>
       <div><p class="section-label">Tính cách</p><div class="tags" style="margin-top:6px">${p.traits.map(t => `<span class="tag yes">${esc(t)}</span>`).join('')}</div></div>
       <div><p class="section-label">Lịch sử cứu hộ</p><p class="story" style="margin-top:6px">${esc(p.story)}</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${cardActions(p)}${st !== 'adopted' ? `<button class="btn small ghost" data-act="supportpet" data-id="${p.id}">Hỗ trợ ${esc(p.name)}</button>` : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${cardActions(p)}</div>
       ${st === 'available' ? `<p class="hint">Khi thêm vào nhà, bé được giữ cho bạn ${HOLD_DAYS} ngày. Sau thời gian đó nếu chưa gửi đơn, bé tự động được nhả.</p>` : ''}
     </div></div>`;
   m.hidden = false;
   m.querySelector('.x').focus();
-}
-
-/* ---------- support (cash / goods) ---------- */
-const ITEMS = [
-  ['dogfood','Thức ăn hạt cho chó','kg'], ['catfood','Thức ăn hạt cho mèo','kg'], ['pate','Pate, đồ ăn ướt','hộp'],
-  ['milk','Sữa cho chó mèo con','hộp'], ['litter','Cát vệ sinh cho mèo','túi'], ['med','Thuốc, vật tư y tế (bông, băng, sát khuẩn)','phần'],
-  ['gear','Đồ dùng: bát ăn, dây dắt, lồng vận chuyển','món'], ['pad','Tã lót, khăn lau','gói']
-];
-const NEEDS = { VML:['catfood','litter','milk'], PN:['pate','litter','med'], TD:['dogfood','med','gear'] };
-function bankBox(){
-  return `<div class="bank">
-    <img src="${BANK.qr}" alt="Mã QR chuyển khoản ${BANK.bank} ${BANK.number}" width="150" height="150">
-    <dl class="review-list">
-      <dt>Ngân hàng</dt><dd>${BANK.bank}</dd>
-      <dt>Số tài khoản</dt><dd><b class="acct" id="acct">${BANK.number}</b> <button class="btn ghost small" data-act="copyacct">Sao chép</button></dd>
-      <dt>Chủ tài khoản</dt><dd>${BANK.holder}<br><small class="meta">${BANK.role}</small></dd>
-    </dl></div>`;
-}
-/* Transfer proof picked by the donor; kept in memory only (object URLs do not survive a reload) */
-const PROOF_TYPES = ['image/jpeg','image/png','image/webp','application/pdf'], PROOF_MAX = 5 * 1024 * 1024;
-let proofDraft = null;
-const proofUrls = {};
-function proofField(){
-  return `<div class="field"><span>Ảnh chụp minh chứng chuyển khoản</span>
-    <input type="file" id="s-proof" accept="image/jpeg,image/png,image/webp,application/pdf">
-    ${proofDraft ? `<div class="proof">${proofDraft.type.startsWith('image/') ? `<img src="${proofDraft.url}" alt="Minh chứng chuyển khoản đã chọn">` : ''}<span>${esc(proofDraft.name)}, ${Math.ceil(proofDraft.size/1024)} KB</span></div>` : ''}
-    <span class="hint">Ảnh chụp màn hình giao dịch thành công (JPG, PNG, WEBP hoặc PDF, tối đa 5 MB).</span>
-    <span class="err">${esc(supErr.proof || '')}</span></div>`;
-}
-const AMOUNTS = [100000, 200000, 500000, 1000000];
-const fmtVND = n => Number(n).toLocaleString('vi-VN')+'đ';
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-function targetLabel(t){
-  if (!t || t === 'all') return 'Quỹ chung TryYourPet';
-  const [k, v] = t.split(':');
-  return k === 'station' ? STATIONS[v].name : 'Bé '+pet(v).name+', '+STATIONS[pet(v).station].name;
-}
-function targetStation(t){
-  if (!t || t === 'all') return null;
-  const [k, v] = t.split(':');
-  return k === 'station' ? v : pet(v).station;
-}
-function supportText(x){
-  if (x.type === 'cash') return fmtVND(x.amount);
-  return ITEMS.filter(([k]) => x.items[k] > 0).map(([k,l,u]) => x.items[k]+' '+u+' '+l.toLowerCase()).join(', ');
-}
-let supErr = {};
-function sinp(id, label, type = 'text', extra = '', full = false){
-  return `<label class="field ${full ? 'full' : ''}"><span>${label}</span><input id="s-${id}" type="${type}" data-s="${id}" value="${esc(S.support[id] || '')}" ${extra}><span class="err">${esc(supErr[id] || '')}</span></label>`;
-}
-function submitSupport(){
-  const s = S.support; supErr = {};
-  const amount = s.amount === 'custom' ? Math.round(+s.custom || 0) : s.amount;
-  if (s.type === 'cash' && !(amount >= 10000)) supErr.amount = 'Số tiền tối thiểu là 10.000đ.';
-  if (s.type === 'cash' && !proofDraft) supErr.proof = 'Tải lên ảnh chụp minh chứng chuyển khoản.';
-  if (s.type === 'items' && !ITEMS.some(([k]) => s.items[k] > 0)) supErr.items = 'Nhập số lượng cho ít nhất một món.';
-  if (!(s.name || '').trim()) supErr.name = 'Nhập họ tên để trạm ghi nhận.';
-  if (!EMAIL_RE.test(s.contact || '')) supErr.contact = 'Nhập email để nhận xác nhận.';
-  if (Object.keys(supErr).length) return false;
-  const now = new Date(), id = 'HT-'+pad(now.getMonth()+1)+pad(now.getDate())+'-'+String(Math.floor(Math.random()*9000)+1000);
-  const rec = { id, type:s.type, target:s.target || 'all', amount:s.type === 'cash' ? amount : null, items:s.type === 'items' ? { ...s.items } : null,
-    method:s.type === 'items' ? (s.method || 'dropoff') : null, name:s.name.trim(), anon:!!s.anon, contact:s.contact, phone:s.phone || '', note:s.note || '', status:'pending', createdAt:Date.now(),
-    proofName:s.type === 'cash' ? proofDraft.name : null };
-  if (s.type === 'cash'){ proofUrls[id] = proofDraft; proofDraft = null; }
-  S.supports.unshift(rec);
-  mail(s.contact, s.type === 'cash' ? 'Đã nhận minh chứng chuyển khoản '+fmtVND(amount)+', dự án đang đối soát' : 'Xác nhận đăng ký hỗ trợ hiện vật');
-  mail('quanly@tryyourpet.vn', 'Hỗ trợ mới '+id+' cho '+targetLabel(rec.target));
-  S.lastSupport = id;
-  S.support = { type:s.type, target:'all', amount:200000, items:{}, method:'dropoff', name:s.name, contact:s.contact, phone:s.phone };
-  return true;
-}
-function viewSupport(){
-  const s = S.support, open = S.settings.openDays.map(x => WEEKDAYS[x]).join(', ');
-  const done = S.lastSupport && S.supports.find(x => x.id === S.lastSupport);
-  if (done){
-    app.innerHTML = `<section class="done panel">
-      <img class="mascot-empty" src="assets/cat-sit.png" alt="">
-      <span class="pill confirmed" style="justify-self:center">Đã ghi nhận</span>
-      <h1>Cảm ơn bạn đã <em>thương các bé</em></h1>
-      <dl class="review-list" style="text-align:left;justify-self:center">
-        <dt>Dành cho</dt><dd>${esc(targetLabel(done.target))}</dd>
-        <dt>${done.type === 'cash' ? 'Số tiền' : 'Hiện vật'}</dt><dd>${esc(supportText(done))}</dd>
-        ${done.type === 'cash' ? `<dt>Minh chứng</dt><dd>${esc(done.proofName)}</dd>` : `<dt>Cách gửi</dt><dd>${done.method === 'ship' ? 'Gửi chuyển phát đến trạm' : 'Mang trực tiếp đến trạm'}</dd>`}
-      </dl>
-      <div class="callout ok">${done.type === 'cash' ? 'Dự án đã nhận minh chứng chuyển khoản và sẽ đối soát với tài khoản ngân hàng.' : 'Email xác nhận kèm địa chỉ trạm đã được gửi tới '+esc(done.contact)+'.'} Khi ${done.type === 'cash' ? 'tiền đã về' : 'trạm nhận được đồ'}, bạn sẽ nhận một email báo lại.</div>
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="supportagain">Hỗ trợ thêm</button><button class="btn ghost" data-act="go" data-view="list">Xem các bé</button></div>
-    </section>`;
-    return;
-  }
-  const st = targetStation(s.target);
-  const need = st ? NEEDS[st] : [...new Set(Object.values(NEEDS).flat())];
-  const cash = `
-    <div class="q"><span class="qt">Số tiền</span>
-      <div class="choices">${AMOUNTS.map(a => `<button class="choice" data-act="samount" data-v="${a}" aria-pressed="${s.amount === a}">${fmtVND(a)}</button>`).join('')}<button class="choice" data-act="samount" data-v="custom" aria-pressed="${s.amount === 'custom'}">Số khác</button></div>
-      ${s.amount === 'custom' ? `<label class="field"><span>Nhập số tiền (đồng)</span><input id="s-custom" type="number" min="10000" step="1000" data-s="custom" value="${esc(s.custom || '')}"></label>` : ''}
-      <span class="err">${esc(supErr.amount || '')}</span></div>
-    <div class="q"><span class="qt">Chuyển khoản tới tài khoản của dự án</span>${bankBox()}
-      <p class="hint">Quét mã QR hoặc chuyển khoản theo thông tin trên, rồi tải ảnh chụp giao dịch thành công lên bên dưới để dự án đối soát.</p>
-      ${proofField()}</div>`;
-  const goods = `
-    <div class="q"><span class="qt">Chọn đồ và số lượng</span>
-      <div class="items">${ITEMS.map(([k,l,u]) => `<label class="item-row"><span>${l} ${need.includes(k) ? '<span class="pill mine">Trạm đang cần</span>' : ''}</span><span class="qty"><input id="it-${k}" type="number" min="0" max="999" data-item="${k}" value="${s.items[k] || 0}" aria-label="Số lượng ${l}">${u}</span></label>`).join('')}</div>
-      <span class="err">${esc(supErr.items || '')}</span></div>
-    <fieldset class="q"><legend>Cách gửi đồ</legend><div class="choices">
-      <label class="choice"><input type="radio" name="s-method" data-s="method" value="dropoff" ${s.method !== 'ship' ? 'checked' : ''}>Mang trực tiếp đến trạm</label>
-      <label class="choice"><input type="radio" name="s-method" data-s="method" value="ship" ${s.method === 'ship' ? 'checked' : ''}>Gửi chuyển phát đến trạm</label></div>
-      <p class="hint">${st ? 'Địa chỉ nhận: '+STATIONS[st].name+', '+STATIONS[st].addr : 'Đồ cho quỹ chung, bạn gửi đến trạm gần nhất: '+Object.values(STATIONS).map(x => x.name+' ('+x.area+')').join(', ')}. Trạm nhận đồ ${open}, 9:00–18:00.</p></fieldset>`;
-  app.innerHTML = `
-  <section class="support-head">
-    <div><h1>Hỗ trợ <em>các bé</em></h1>
-      <p class="lead">Chưa thể nhận nuôi, bạn vẫn có thể giúp các bé bằng tiền hoặc hiện vật. Mọi đóng góp được chuyển thẳng tới trạm cứu hộ để mua thức ăn, sữa, thuốc và chi trả chi phí chữa trị cho các bé.</p></div>
-    <img class="support-mascot" src="assets/dog-stick.png" alt="">
-  </section>
-  <div class="two">
-    <section class="panel">
-      <div class="seg" style="display:inline-flex;margin-bottom:16px">${[['cash','Hiện kim (tiền)'],['items','Hiện vật']].map(([k,l]) => `<button data-act="stype" data-v="${k}" aria-pressed="${s.type === k}">${l}</button>`).join('')}</div>
-      <label class="field"><span>Bạn muốn hỗ trợ cho</span><select id="s-target" data-s="target">
-        <option value="all">Quỹ chung TryYourPet (chia cho các trạm)</option>
-        <optgroup label="Trạm cứu hộ">${Object.entries(STATIONS).map(([k,x]) => `<option value="station:${k}" ${s.target === 'station:'+k ? 'selected' : ''}>${x.name}, ${x.area}</option>`).join('')}</optgroup>
-        <optgroup label="Một bé cụ thể">${PETS.filter(p => petState(p.id) !== 'adopted').map(p => `<option value="pet:${p.id}" ${s.target === 'pet:'+p.id ? 'selected' : ''}>${esc(p.name)} (${species(p.species).toLowerCase()}, ${STATIONS[p.station].name})</option>`).join('')}</optgroup>
-      </select></label>
-      ${s.type === 'cash' ? cash : goods}
-      <div class="form-grid" style="margin-top:16px">
-        ${sinp('name','Họ và tên','text','autocomplete="name"')}
-        ${sinp('contact','Email nhận xác nhận','email','autocomplete="email"')}
-        ${sinp('phone','Số điện thoại (không bắt buộc)','tel','autocomplete="tel" inputmode="tel"')}
-        <label class="check" style="align-self:end"><input type="checkbox" id="s-anon" data-s="anon" ${s.anon ? 'checked' : ''}>Ẩn tên tôi khi trạm cảm ơn công khai</label>
-        <label class="field full"><span>Lời nhắn cho trạm (không bắt buộc)</span><textarea id="s-note" data-s="note">${esc(s.note || '')}</textarea></label>
-      </div>
-      <div class="nav-steps"><span></span><button class="btn" data-act="supportsubmit">${s.type === 'cash' ? 'Gửi minh chứng chuyển khoản' : 'Gửi đăng ký hỗ trợ'}</button></div>
-    </section>
-    <aside class="panel"><h3>Các trạm đang cần</h3>
-      ${Object.entries(STATIONS).map(([k,x]) => `<div class="need-block"><b>${x.name}</b><span class="meta">${x.area}${fbLink(x)}</span><div class="tags">${NEEDS[k].map(n => `<span class="tag yes">${ITEMS.find(i => i[0] === n)[1]}</span>`).join('')}</div></div>`).join('')}
-      <p class="hint" style="margin-top:12px">Bạn nhận email xác nhận ngay khi gửi, và một email nữa khi trạm đã nhận được hỗ trợ.</p>
-    </aside>
-  </div>`;
 }
 
 function holdLeft(until){
@@ -883,7 +719,6 @@ function viewAdmin(){
     <div class="kpi"><b>${upcoming.length}</b><span>Lịch nhận 7 ngày tới</span></div>
     <div class="kpi"><b>${S.holds.length}</b><span>Bé đang được giữ chỗ</span></div>
     <div class="kpi"><b>${adoptedCount}</b><span>Bé đã có nhà / ${PETS.length} bé</span></div>
-    <div class="kpi"><b>${S.supports.filter(x => x.status === 'pending').length}</b><span>Hỗ trợ chờ nhận</span></div>
   </div>
   <section class="panel"><h2>Lịch nhận 7 ngày tới</h2><div class="scroll"><table class="cal"><thead><tr><th>Khung giờ</th>${allDays.map(k => { const d = dparse(k); return `<th>${WEEKDAYS[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)}</th>`; }).join('')}</tr></thead><tbody>
     ${[['station','Tại trạm']].map(([m,ml]) => slotsFor(m).map(s => `<tr><th>${ml}<br>${s.label}</th>${allDays.map(k => {
@@ -905,18 +740,6 @@ function viewAdmin(){
       <td><div class="acts">${o.status === 'review' ? `<button class="btn small" data-act="approve" data-id="${o.id}">Duyệt</button><button class="btn small danger" data-act="reject" data-id="${o.id}">Từ chối</button>` : ''}
         ${o.status === 'confirmed' ? `<button class="btn small" data-act="complete" data-id="${o.id}">Đã giao bé</button><button class="btn small danger" data-act="noshow" data-id="${o.id}">Vắng mặt</button>` : ''}</div></td></tr>`; }).join('')
       : `<tr><td colspan="6" class="meta">Không có đơn ở trạng thái này.</td></tr>`}
-    </tbody></table></div></section>
-
-  <section class="panel"><h2>Hỗ trợ từ cộng đồng</h2>
-    <div class="scroll"><table><thead><tr><th>Mã</th><th>Người hỗ trợ</th><th>Nội dung</th><th>Dành cho</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-    ${S.supports.length ? S.supports.map(x => `<tr>
-      <td><b>${x.id}</b>${x.example ? '<br><small class="meta">ví dụ</small>' : ''}</td>
-      <td>${esc(x.name)}${x.anon ? ' <small class="meta">(ẩn tên công khai)</small>' : ''}<br><small class="meta">${esc(x.contact)}</small></td>
-      <td>${x.type === 'cash' ? 'Hiện kim' : 'Hiện vật'}, ${esc(supportText(x))}${x.method ? `<br><small class="meta">${x.method === 'ship' ? 'Gửi chuyển phát' : 'Mang đến trạm'}</small>` : ''}${x.type === 'cash' ? `<br>${proofUrls[x.id] ? `<a href="${proofUrls[x.id].url}" target="_blank" rel="noopener">Xem minh chứng</a>` : `<small class="meta">${x.proofName ? 'Minh chứng: '+esc(x.proofName) : 'Chưa có minh chứng'}</small>`}` : ''}</td>
-      <td>${esc(targetLabel(x.target))}</td>
-      <td><span class="pill ${x.status === 'received' ? 'completed' : 'review'}">${x.status === 'received' ? 'Đã nhận' : 'Chờ nhận'}</span></td>
-      <td>${x.status === 'pending' ? `<button class="btn small" data-act="supportdone" data-id="${x.id}">${x.type === 'cash' ? 'Đã nhận tiền' : 'Đã nhận đồ'}</button>` : ''}</td></tr>`).join('')
-    : `<tr><td colspan="6" class="meta">Chưa có lượt hỗ trợ nào.</td></tr>`}
     </tbody></table></div></section>
 
   <div class="admin-grid">
@@ -957,19 +780,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el){ if (e.target.id === 'modal') closeModal(); return; }
   const a = el.dataset.act, id = el.dataset.id;
-  if (a === 'go'){ S.view = el.dataset.view; if (S.view === 'support') S.lastSupport = null; closeModal(); window.scrollTo(0,0); }
-  else if (a === 'supportpet'){ S.support.target = 'pet:'+id; S.lastSupport = null; supErr = {}; S.view = 'support'; closeModal(); window.scrollTo(0,0); }
-  else if (a === 'copyacct'){
-    const sel = () => { const r = document.createRange(); r.selectNodeContents(document.getElementById('acct')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
-    try { navigator.clipboard.writeText(BANK.number).then(() => toast('Đã sao chép số tài khoản'), () => { sel(); toast('Đã chọn số tài khoản, nhấn Ctrl+C để sao chép'); }); }
-    catch(err){ sel(); toast('Đã chọn số tài khoản, nhấn Ctrl+C để sao chép'); }
-    return;
-  }
-  else if (a === 'stype'){ S.support.type = el.dataset.v; supErr = {}; }
-  else if (a === 'samount'){ S.support.amount = el.dataset.v === 'custom' ? 'custom' : +el.dataset.v; supErr.amount = ''; }
-  else if (a === 'supportsubmit'){ if (submitSupport()) window.scrollTo(0,0); }
-  else if (a === 'supportagain'){ S.lastSupport = null; supErr = {}; }
-  else if (a === 'supportdone'){ const x = S.supports.find(r => r.id === id); if (x){ x.status = 'received'; mail(x.contact, 'Trạm đã nhận hỗ trợ '+x.id+', cảm ơn bạn'); toast('Đã ghi nhận '+x.id); } }
+  if (a === 'go'){ S.view = el.dataset.view; closeModal(); window.scrollTo(0,0); }
   else if (a === 'filter'){ S.filters[el.dataset.k] = el.dataset.v; if (el.dataset.k === 'species') S.filters.breed = 'all'; }
   else if (a === 'clearfilter'){ S.filters = { species:'all', breed:'all', sex:'all', weight:'all' }; }
   else if (a === 'detail'){ openDetail(id); return; }
@@ -1009,8 +820,6 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.f){ S.draft[t.dataset.f] = t.value; if (t.dataset.f === 'district') render(); else save(); }
   else if (t.dataset.qt){ S.draft.answers[t.dataset.qt] = t.value; save(); }
-  else if (t.dataset.s){ S.support[t.dataset.s] = t.type === 'checkbox' ? t.checked : t.value; save(); }
-  else if (t.dataset.item){ S.support.items[t.dataset.item] = Math.max(0, Math.floor(+t.value) || 0); save(); }
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -1021,15 +830,6 @@ document.addEventListener('change', e => {
   else if (t.dataset.adult !== undefined){ S.draft.adult = t.checked; errors.adult = ''; save(); }
   else if (t.dataset.openday !== undefined){ const x = +t.dataset.openday; S.settings.openDays = t.checked ? [...S.settings.openDays, x] : S.settings.openDays.filter(d => d !== x); render(); }
   else if (t.dataset.cap){ const s = slotById(t.dataset.cap); s.cap = Math.max(0, Math.min(20, +t.value || 0)); render(); }
-  else if (t.dataset.s === 'target' || t.dataset.s === 'method'){ S.support[t.dataset.s] = t.value; render(); }
-  else if (t.id === 's-proof'){
-    const f = t.files && t.files[0];
-    if (!f) return;
-    if (!PROOF_TYPES.includes(f.type)) supErr.proof = 'Chỉ nhận ảnh JPG, PNG, WEBP hoặc file PDF.';
-    else if (f.size > PROOF_MAX) supErr.proof = 'File lớn hơn 5 MB, chọn ảnh nhỏ hơn.';
-    else { if (proofDraft) URL.revokeObjectURL(proofDraft.url); proofDraft = { name:f.name, size:f.size, type:f.type, url:URL.createObjectURL(f) }; supErr.proof = ''; }
-    render();
-  }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
 render();
