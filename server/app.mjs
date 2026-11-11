@@ -8,9 +8,9 @@
 //   now:     () -> ms
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import {
-  HOLD_DAYS, MAX_PETS, COMMITS, ITEMS, PROOF_TYPES, PHOTO_TYPES, FILE_MAX, BANK, OUTSIDE,
+  HOLD_DAYS, MAX_PETS, COMMITS, PHOTO_TYPES, FILE_MAX,
   bookableDays, apptEnd, vnDateKey, addDays, weekdayOf, validateCustomer, validateAnswers, evaluateFlags,
-  cleanAnswers, validateSupport, cleanItems, itemsText, fmtVND, normEmail, normPhone, EMAIL_RE
+  cleanAnswers, normEmail, normPhone, EMAIL_RE
 } from '../site/js/rules.js';
 
 const DAY = 864e5;
@@ -97,7 +97,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     return { openDays: s ? s.open_days.map(Number) : [0, 2, 3, 4, 5, 6] };
   }
   const slotsList = () => q('select id, label, start_hour, end_hour, capacity from slots order by sort, id');
-  const stationsList = () => q('select id, name, area, address, facebook, email, phone, needs from stations order by sort, name');
+  const stationsList = () => q('select id, name, area, address, facebook, email, phone from stations order by sort, name');
 
   async function bookedCounts(dates) {
     if (!dates.length) return {};
@@ -148,7 +148,7 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
 
   /* ================= public routes ================= */
   async function getConfig() {
-    return { supabaseUrl: config.supabaseUrl || null, supabaseAnonKey: config.supabaseAnonKey || null, bank: BANK };
+    return { supabaseUrl: config.supabaseUrl || null, supabaseAnonKey: config.supabaseAnonKey || null };
   }
 
   async function getCatalog({ visitor }) {
@@ -303,47 +303,6 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     return { order: { code: order.code, status, statusLabel: ORDER_LABEL[status], date, dateLabel: fmtDay(date), slotLabel: order.slot.label, pets: holds.map(h => h.name), hasCat, station: { name: station.name, address: station.address }, flags, email: customer.email } };
   }
 
-  async function createSupport(body) {
-    const s = {
-      type: body.type, target: String(body.target || 'all'), amount: body.type === 'cash' ? Math.round(Number(body.amount)) : null,
-      items: body.type === 'items' ? cleanItems(body.items) : null, method: body.type === 'items' ? (body.method === 'ship' ? 'ship' : 'dropoff') : null,
-      name: String(body.name || '').trim().slice(0, 120), anon: !!body.anon, email: normEmail(body.email),
-      phone: String(body.phone || '').trim().slice(0, 20), note: String(body.note || '').trim().slice(0, 1000), hasProof: !!body.proof
-    };
-    const errs = validateSupport(s);
-    if (Object.keys(errs).length) bad('Thông tin hỗ trợ chưa hợp lệ.', errs);
-    let targetLabel = 'Quỹ chung TryYourPet', stationId = null;
-    if (s.target !== 'all') {
-      const [kind, id] = s.target.split(':');
-      if (kind === 'station') { const st = await one('select id, name from stations where id = $1', [id]); if (!st) bad('Nơi nhận hỗ trợ không hợp lệ.'); targetLabel = st.name; stationId = st.id; }
-      else if (kind === 'pet' && UUID_RE.test(id || '')) { const p = await one('select p.name, s.id as sid, s.name as station from pets p join stations s on s.id = p.station_id where p.id = $1', [id]); if (!p) bad('Nơi nhận hỗ trợ không hợp lệ.'); targetLabel = 'Bé ' + p.name + ', ' + p.station; stationId = p.sid; }
-      else bad('Nơi nhận hỗ trợ không hợp lệ.');
-    }
-    const code = newCode('HT');
-    let proofPath = null;
-    if (s.type === 'cash') {
-      const f = decodeFile(body.proof, PROOF_TYPES, 'minh chứng chuyển khoản');
-      proofPath = vnDateKey(now()).slice(0, 7) + '/' + code + '.' + f.ext;
-      await storage.upload('proofs', proofPath, f.bytes, f.type);
-    }
-    await q(`insert into supports (code, type, target, amount, items, method, name, anon, email, phone, note, proof_path)
-      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-      [code, s.type, s.target, s.amount, s.items ? JSON.stringify(s.items) : null, s.method, s.name, s.anon, s.email, s.phone || null, s.note || null, proofPath]);
-    const what = s.type === 'cash' ? fmtVND(s.amount) : itemsText(s.items);
-    let addr = '';
-    if (s.type === 'items') {
-      const st = stationId ? await one('select name, address from stations where id = $1', [stationId]) : null;
-      addr = st ? 'Địa chỉ nhận đồ: ' + st.name + (st.address ? ', ' + st.address : ' (trạm sẽ liên hệ báo địa chỉ)') + '.' : 'Bạn có thể gửi đồ đến bất kỳ trạm nào trong danh sách trên website.';
-    }
-    await sendMail(s.email, s.type === 'cash' ? 'TryYourPet đã nhận minh chứng chuyển khoản' : 'TryYourPet đã nhận đăng ký hỗ trợ', [
-      'Chào ' + s.name + ',', 'Cảm ơn bạn đã hỗ trợ ' + targetLabel + ': ' + what + '.',
-      s.type === 'cash' ? 'Dự án đã nhận ảnh minh chứng chuyển khoản và sẽ đối soát với tài khoản ngân hàng. Khi tiền đã về, bạn sẽ nhận một email báo lại.' : addr,
-      ...(s.type === 'items' ? ['Khi trạm nhận được đồ, bạn sẽ nhận một email báo lại.'] : [])
-    ]);
-    await notifyAdmins('Hỗ trợ mới ' + code + (s.type === 'cash' ? ' (cần đối soát)' : ''), ['Người hỗ trợ: ' + s.name + ', ' + s.email, 'Dành cho: ' + targetLabel, (s.type === 'cash' ? 'Số tiền: ' : 'Hiện vật: ') + what]);
-    return { support: { type: s.type, target: targetLabel, what, method: s.method, email: s.email } };
-  }
-
   /* ================= admin routes ================= */
   async function requireAdmin(headers) {
     const h = headers.authorization || headers.Authorization || '';
@@ -358,11 +317,9 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
   async function overview() {
     const t = new Date(now());
     const today = vnDateKey(now());
-    const [orders, supports, pets, holds, stations, slots, st, emails] = await Promise.all([
+    const [orders, pets, holds, stations, slots, st, emails] = await Promise.all([
       q(`select id, code, status, pet_ids, station_id, name, phone, email, address, district, job, adult_confirmed, answers, flags, appt_date::text as appt_date,
            slot_id, appt_end, cancel_reason, decided_by, created_at from orders order by created_at desc limit 300`),
-      q(`select id, code, type, target, amount, items, method, name, anon, email, phone, note, proof_path, status, decided_by, created_at
-           from supports order by created_at desc limit 300`),
       q(`select id, name, species, breed, sex, age_months, weight_kg::float8 as weight_kg, vaccine, neutered, traits, story, station_id,
            photos, video_url, published, adopted_at, created_at from pets order by created_at desc`),
       q(`select h.pet_id, h.visitor_id, h.order_id, h.expires_at from holds h where h.order_id is not null or h.expires_at > $1`, [t]),
@@ -375,11 +332,9 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
       now: now(), today, days,
       settings: st, slots, stations,
       orders: orders.map(o => ({ ...o, appt_end: ms(o.appt_end), created_at: ms(o.created_at) })),
-      supports: supports.map(s => ({ ...s, created_at: ms(s.created_at), hasProof: !!s.proof_path, proof_path: undefined })),
       pets: pets.map(p => ({ ...petOut(p, holdBy[p.id], null), published: p.published, adoptedAt: ms(p.adopted_at) })),
       holds: holds.filter(h => !h.order_id).map(h => ({ petId: h.pet_id, expiresAt: ms(h.expires_at) })),
-      emails: emails.map(e => ({ ...e, created_at: ms(e.created_at) })),
-      bank: BANK
+      emails: emails.map(e => ({ ...e, created_at: ms(e.created_at) }))
     };
   }
 
@@ -417,25 +372,6 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
         'Nhớ gửi ảnh hoặc video cập nhật cho trạm hằng tháng trong 3 tháng đầu như đã cam kết nhé.']);
     }
     return { ok: true };
-  }
-
-  async function supportAction({ id, action }, admin) {
-    const s = await one('select id, code, type, status, name, email, amount, items from supports where id = $1', [id]);
-    if (!s) throw new HttpError(404, 'Không tìm thấy lượt hỗ trợ.');
-    if (s.status !== 'pending') throw new HttpError(409, 'Lượt hỗ trợ này đã được xử lý.');
-    if (action !== 'received' && action !== 'rejected') bad('Thao tác không hợp lệ.');
-    await q('update supports set status = $2, decided_by = $3 where id = $1', [id, action, admin]);
-    const what = s.type === 'cash' ? fmtVND(s.amount) : itemsText(s.items || {});
-    await sendMail(s.email, action === 'received' ? 'TryYourPet đã nhận được hỗ trợ của bạn' : 'TryYourPet chưa đối soát được khoản hỗ trợ', action === 'received'
-      ? ['Chào ' + s.name + ',', 'Dự án đã nhận được ' + what + '. Cảm ơn bạn đã thương các bé!']
-      : ['Chào ' + s.name + ',', 'Dự án chưa tìm thấy giao dịch ' + what + ' khớp với minh chứng bạn gửi. Bạn vui lòng trả lời email này kèm thời gian chuyển và tên tài khoản chuyển để dự án kiểm tra lại.']);
-    return { ok: true };
-  }
-
-  async function proofUrl({ id }) {
-    const s = await one('select proof_path from supports where id = $1', [id]);
-    if (!s || !s.proof_path) throw new HttpError(404, 'Lượt hỗ trợ này không có minh chứng.');
-    return { url: await storage.signedUrl('proofs', s.proof_path, 300) };
   }
 
   async function saveSettings({ openDays, capacities }) {
@@ -509,11 +445,10 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     if (fb && !/^https:\/\//.test(fb)) bad('Link Facebook phải bắt đầu bằng https://', { facebook: 'Link phải bắt đầu bằng https://' });
     const email = normEmail(s.email);
     if (email && !EMAIL_RE.test(email)) bad('Email trạm chưa đúng định dạng.', { email: 'Email chưa đúng định dạng.' });
-    const needs = (s.needs || []).filter(n => ITEMS.some(([k]) => k === n));
-    await q(`insert into stations (id, name, area, address, facebook, email, phone, needs) values ($1,$2,$3,$4,$5,$6,$7,$8)
+    await q(`insert into stations (id, name, area, address, facebook, email, phone) values ($1,$2,$3,$4,$5,$6,$7)
       on conflict (id) do update set name=excluded.name, area=excluded.area, address=excluded.address, facebook=excluded.facebook,
-      email=excluded.email, phone=excluded.phone, needs=excluded.needs`,
-      [id, name, String(s.area || 'TP.HCM').trim().slice(0, 60), String(s.address || '').trim().slice(0, 300), fb || null, email || null, String(s.phone || '').trim().slice(0, 20) || null, needs]);
+      email=excluded.email, phone=excluded.phone`,
+      [id, name, String(s.area || 'TP.HCM').trim().slice(0, 60), String(s.address || '').trim().slice(0, 300), fb || null, email || null, String(s.phone || '').trim().slice(0, 20) || null]);
     return { ok: true };
   }
 
@@ -556,12 +491,9 @@ export function createApp({ db, mailer, storage, auth, config, now = () => Date.
     'POST otp/send': ({ body }) => sendOtp(body),
     'POST otp/verify': ({ body }) => verifyOtp(body),
     'POST orders': ({ body }) => createOrder(body),
-    'POST supports': ({ body }) => createSupport(body),
     'GET admin/me': async ({ admin }) => ({ email: admin }),
     'GET admin/overview': () => overview(),
     'POST admin/orders/action': ({ body, admin }) => orderAction(body, admin),
-    'POST admin/supports/action': ({ body, admin }) => supportAction(body, admin),
-    'GET admin/supports/proof': ({ query }) => proofUrl(query),
     'POST admin/settings': ({ body }) => saveSettings(body),
     'POST admin/pets/save': ({ body }) => savePet(body),
     'POST admin/stations/save': ({ body }) => saveStation(body)

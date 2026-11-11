@@ -1,10 +1,10 @@
-// Customer page: browse pets, hold them in "Nhà của tôi", apply to adopt, support the stations.
+// Customer page: browse pets, hold them in "Nhà của tôi", apply to adopt.
 // All data comes from the API; only the visitor id and an unsent form draft stay in this browser.
 import {
-  HOLD_DAYS, MAX_PETS, COMMITS, ITEMS, DISTRICTS, OUTSIDE, WEEKDAYS, BANK, PROOF_TYPES, FILE_MAX, MIN_AMOUNT,
-  EMAIL_RE, questionsFor, validateCustomer, validateAnswers, evaluateFlags, validateSupport, cleanItems, fmtVND, normEmail
+  HOLD_DAYS, MAX_PETS, COMMITS, DISTRICTS, OUTSIDE, WEEKDAYS,
+  EMAIL_RE, questionsFor, validateCustomer, validateAnswers, evaluateFlags, normEmail
 } from './rules.js';
-import { esc, fmtDT, fmtDay, dayChip, ageText, kg, species, art, toast, api, fileToPayload, busy, store } from './ui.js';
+import { esc, fmtDT, fmtDay, dayChip, ageText, kg, species, art, toast, api, busy, store } from './ui.js';
 
 const app = document.getElementById('app');
 const VISITOR = (() => {
@@ -16,18 +16,15 @@ const VISITOR = (() => {
 const S = {
   view: 'list', step: 1, filters: { species:'all', breed:'all', sex:'all', weight:'all' },
   draft: store.get('typ-draft', { answers:{}, commits:{} }),
-  support: { type:'cash', target:'all', amount:200000, items:{}, method:'dropoff', ...store.get('typ-support', {}) },
-  lastOrder: null, lastSupport: null
+  lastOrder: null
 };
 S.draft.answers = S.draft.answers || {}; S.draft.commits = {};
 let C = null;            // catalog from the API
 let loadError = '';
-let errors = {}, supErr = {};
-let proofDraft = null;   // { file, url }
+let errors = {};
 let gallerySel = 0, openPetId = null;
 
 const saveDraft = () => store.set('typ-draft', { ...S.draft, commits: {} });
-const saveSupport = () => { const { name, email, phone, anon } = S.support; store.set('typ-support', { name, email, phone, anon }); };
 
 /* ---------- data ---------- */
 async function load() {
@@ -36,7 +33,7 @@ async function load() {
   render();
 }
 const pet = id => C.pets.find(p => p.id === id);
-const station = id => C.stations.find(s => s.id === id) || { name: 'Trạm cứu hộ', area: '', address: '', needs: [] };
+const station = id => C.stations.find(s => s.id === id) || { name: 'Trạm cứu hộ', area: '', address: '' };
 const myHolds = () => (C ? C.myHolds : []).filter(h => pet(h.petId));
 const STATE_LABEL = { available:'Đang tìm nhà', mine:'Trong nhà bạn', held:'Đã có người đăng ký', adopted:'Đã có nhà' };
 const fbLink = st => st.facebook ? `<br><a href="${esc(st.facebook)}" target="_blank" rel="noopener">Trang Facebook của trạm</a>` : '';
@@ -47,7 +44,6 @@ function renderNav() {
   const n = myHolds().length, v = S.view;
   document.getElementById('nav').innerHTML = `
     <button data-act="go" data-view="list" aria-current="${v === 'list'}">Thú cưng</button>
-    <button data-act="go" data-view="support" aria-current="${v === 'support'}">Hỗ trợ bé</button>
     <button data-act="go" data-view="home" aria-current="${v === 'home' || v === 'checkout'}">Nhà của tôi <span class="count" aria-label="${n} bé">${n}</span></button>`;
 }
 function render() {
@@ -58,7 +54,7 @@ function render() {
       : '<p class="loading">Đang tải danh sách các bé…</p>';
     return;
   }
-  ({ list:viewList, support:viewSupport, home:viewHome, checkout:viewCheckout, done:viewDone })[S.view]();
+  ({ list:viewList, home:viewHome, checkout:viewCheckout, done:viewDone })[S.view]();
 }
 
 /* ---------- list ---------- */
@@ -81,8 +77,8 @@ function viewList() {
   <section class="hero">
     <div class="hero-text">
       <h1>Anh Chị tới, <em>thương bé cả đời!</em></h1>
-      <p class="lead">TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng nhằm tìm mái nhà phù hợp cho các bé chó, mèo trên khu vực TP.HCM thông qua hệ thống nhận nuôi hoặc hỗ trợ hiện kim, hiện vật đến với các bé.</p>
-      <div class="hero-cta"><button class="btn add" data-act="scrollpets">Xem ${waiting} bé đang chờ</button><button class="btn ghost on-band" data-act="go" data-view="support">Hỗ trợ các bé</button></div>
+      <p class="lead">TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng nhằm tìm mái nhà phù hợp cho các bé chó, mèo trên khu vực TP.HCM thông qua hệ thống nhận nuôi.</p>
+      <div class="hero-cta"><button class="btn add" data-act="scrollpets">Xem ${waiting} bé đang chờ</button></div>
     </div>
     <div class="hero-art" aria-hidden="true">
       <img class="bone" src="assets/bone.png" alt="">
@@ -106,7 +102,7 @@ function viewList() {
     <label class="field"><span>Cân nặng</span><select id="f-weight" data-filter="weight">${[['all','Tất cả'],['s','Dưới 5 kg'],['m','5–10 kg'],['l','10–20 kg'],['xl','Trên 20 kg']].map(([k, l]) => `<option value="${k}" ${f.weight === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     <span class="result-count">${list.length} bé phù hợp</span>
   </div>
-  ${!C.pets.length ? `<div class="empty"><img class="mascot-empty" src="assets/cat-sleep.png" alt="">Các trạm đang cập nhật hồ sơ các bé. Bạn quay lại sau nhé, hoặc <button class="btn small ghost" data-act="go" data-view="support">hỗ trợ các bé</button> ngay hôm nay.</div>`
+  ${!C.pets.length ? `<div class="empty"><img class="mascot-empty" src="assets/cat-sleep.png" alt="">Các trạm đang cập nhật hồ sơ các bé. Bạn quay lại sau nhé.</div>`
   : list.length ? `<div class="grid">${list.map(p => `<article class="card">
       <button class="pic" data-act="detail" data-id="${p.id}" aria-label="Xem hồ sơ ${esc(p.name)}">${art(p)}${p.state !== 'available' ? `<span class="pill ${p.state}">${STATE_LABEL[p.state]}</span>` : ''}</button>
       <div class="body">
@@ -144,7 +140,7 @@ function renderDetail() {
       </dl>
       ${p.traits.length ? `<div><p class="section-label">Tính cách</p><div class="tags" style="margin-top:6px">${p.traits.map(t => `<span class="tag yes">${esc(t)}</span>`).join('')}</div></div>` : ''}
       ${p.story ? `<div><p class="section-label">Lịch sử cứu hộ</p><p class="story" style="margin-top:6px">${esc(p.story)}</p></div>` : ''}
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${cardActions(p)}${p.state !== 'adopted' ? `<button class="btn small ghost" data-act="supportpet" data-id="${p.id}">Hỗ trợ ${esc(p.name)}</button>` : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${cardActions(p)}</div>
       ${p.state === 'available' ? `<p class="hint">Khi thêm vào nhà, bé được giữ cho bạn ${HOLD_DAYS} ngày. Sau thời gian đó nếu chưa gửi đơn, bé tự động được nhả.</p>` : ''}
     </div></div>`;
   m.hidden = false;
@@ -311,124 +307,6 @@ function viewDone() {
   </section>`;
 }
 
-/* ---------- support ---------- */
-const AMOUNTS = [100000, 200000, 500000, 1000000];
-function targetLabel(t) {
-  if (!t || t === 'all') return 'Quỹ chung TryYourPet';
-  const [k, v] = t.split(':');
-  if (k === 'station') return station(v).name;
-  const p = pet(v);
-  return p ? 'Bé ' + p.name + ', ' + station(p.station).name : 'Quỹ chung TryYourPet';
-}
-function targetStation(t) {
-  if (!t || t === 'all') return null;
-  const [k, v] = t.split(':');
-  return k === 'station' ? v : (pet(v) || {}).station || null;
-}
-function sinp(id, label, type = 'text', extra = '') {
-  return `<label class="field"><span>${label}</span><input id="s-${id}" type="${type}" data-s="${id}" value="${esc(S.support[id] || '')}" ${extra}><span class="err">${esc(supErr[id === 'email' ? 'contact' : id] || '')}</span></label>`;
-}
-function bankBox() {
-  return `<div class="bank">
-    <img src="${BANK.qr}" alt="Mã QR chuyển khoản ${BANK.bank} ${BANK.number}" width="150" height="150">
-    <dl class="review-list">
-      <dt>Ngân hàng</dt><dd>${BANK.bank}</dd>
-      <dt>Số tài khoản</dt><dd><b class="acct" id="acct">${BANK.number}</b> <button class="btn ghost small" data-act="copyacct">Sao chép</button></dd>
-      <dt>Chủ tài khoản</dt><dd>${BANK.holder}<br><small class="meta">${BANK.role}</small></dd>
-    </dl></div>`;
-}
-function viewSupport() {
-  const s = S.support, done = S.lastSupport;
-  if (done) {
-    app.innerHTML = `<section class="done panel">
-      <img class="mascot-empty" src="assets/cat-sit.png" alt="">
-      <span class="pill confirmed" style="justify-self:center">Đã ghi nhận</span>
-      <h1>Cảm ơn bạn đã <em>thương các bé</em></h1>
-      <dl class="review-list" style="text-align:left;justify-self:center">
-        <dt>Dành cho</dt><dd>${esc(done.target)}</dd>
-        <dt>${done.type === 'cash' ? 'Số tiền' : 'Hiện vật'}</dt><dd>${esc(done.what)}</dd>
-        ${done.type === 'items' ? `<dt>Cách gửi</dt><dd>${done.method === 'ship' ? 'Gửi chuyển phát đến trạm' : 'Mang trực tiếp đến trạm'}</dd>` : ''}
-      </dl>
-      <div class="callout ok">${done.type === 'cash' ? 'Dự án đã nhận minh chứng chuyển khoản và sẽ đối soát với tài khoản ngân hàng.' : 'Email xác nhận kèm địa chỉ trạm đã được gửi tới ' + esc(done.email) + '.'} Khi ${done.type === 'cash' ? 'tiền đã về' : 'trạm nhận được đồ'}, bạn sẽ nhận một email báo lại.</div>
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="supportagain">Hỗ trợ thêm</button><button class="btn ghost" data-act="go" data-view="list">Xem các bé</button></div>
-    </section>`;
-    return;
-  }
-  const stId = targetStation(s.target);
-  const need = stId ? station(stId).needs : [...new Set(C.stations.flatMap(x => x.needs))];
-  const open = C.settings.openDays.slice().sort().map(x => WEEKDAYS[x]).join(', ');
-  const cash = `
-    <div class="q"><span class="qt">Số tiền</span>
-      <div class="choices">${AMOUNTS.map(a => `<button class="choice" data-act="samount" data-v="${a}" aria-pressed="${s.amount === a}">${fmtVND(a)}</button>`).join('')}<button class="choice" data-act="samount" data-v="custom" aria-pressed="${s.amount === 'custom'}">Số khác</button></div>
-      ${s.amount === 'custom' ? `<label class="field"><span>Nhập số tiền (đồng)</span><input id="s-custom" type="number" min="${MIN_AMOUNT}" step="1000" data-s="custom" value="${esc(s.custom || '')}"></label>` : ''}
-      <span class="err">${esc(supErr.amount || '')}</span></div>
-    <div class="q"><span class="qt">Chuyển khoản tới tài khoản của dự án</span>${bankBox()}
-      <p class="hint">Quét mã QR hoặc chuyển khoản theo thông tin trên, rồi tải ảnh chụp giao dịch thành công lên bên dưới để dự án đối soát.</p>
-      <div class="field"><span>Ảnh chụp minh chứng chuyển khoản</span>
-        <input type="file" id="s-proof" accept="image/jpeg,image/png,image/webp,application/pdf">
-        ${proofDraft ? `<div class="proof">${proofDraft.file.type.startsWith('image/') ? `<img src="${proofDraft.url}" alt="Minh chứng chuyển khoản đã chọn">` : ''}<span>${esc(proofDraft.file.name)}, ${Math.ceil(proofDraft.file.size / 1024)} KB</span></div>` : ''}
-        <span class="hint">Ảnh chụp màn hình giao dịch thành công (JPG, PNG, WEBP hoặc PDF, tối đa 3 MB).</span>
-        <span class="err">${esc(supErr.proof || '')}</span></div></div>`;
-  const goods = `
-    <div class="q"><span class="qt">Chọn đồ và số lượng</span>
-      <div class="items">${ITEMS.map(([k, l, u]) => `<label class="item-row"><span>${l} ${need.includes(k) ? '<span class="pill mine">Trạm đang cần</span>' : ''}</span><span class="qty"><input id="it-${k}" type="number" min="0" max="999" data-item="${k}" value="${s.items[k] || 0}" aria-label="Số lượng ${l}">${u}</span></label>`).join('')}</div>
-      <span class="err">${esc(supErr.items || '')}</span></div>
-    <fieldset class="q"><legend>Cách gửi đồ</legend><div class="choices">
-      <label class="choice"><input type="radio" name="s-method" data-s="method" value="dropoff" ${s.method !== 'ship' ? 'checked' : ''}>Mang trực tiếp đến trạm</label>
-      <label class="choice"><input type="radio" name="s-method" data-s="method" value="ship" ${s.method === 'ship' ? 'checked' : ''}>Gửi chuyển phát đến trạm</label></div>
-      <p class="hint">${stId ? 'Địa chỉ nhận: ' + esc(station(stId).name) + ', ' + esc(addrText(station(stId))) : 'Đồ cho quỹ chung, bạn gửi đến trạm gần nhất: ' + C.stations.map(x => esc(x.name) + (x.area ? ' (' + esc(x.area) + ')' : '')).join(', ')}. Trạm nhận đồ ${open}, 9:00–18:00.</p></fieldset>`;
-  app.innerHTML = `
-  <section class="support-head">
-    <div><h1>Hỗ trợ <em>các bé</em></h1>
-      <p class="lead">Chưa thể nhận nuôi, bạn vẫn có thể giúp các bé bằng tiền hoặc hiện vật. Mọi đóng góp được chuyển thẳng tới trạm cứu hộ để mua thức ăn, sữa, thuốc và chi trả chi phí chữa trị cho các bé.</p></div>
-    <img class="support-mascot" src="assets/dog-stick.png" alt="">
-  </section>
-  <div class="two">
-    <section class="panel">
-      <div class="seg" style="display:inline-flex;margin-bottom:16px">${[['cash','Hiện kim (tiền)'],['items','Hiện vật']].map(([k, l]) => `<button data-act="stype" data-v="${k}" aria-pressed="${s.type === k}">${l}</button>`).join('')}</div>
-      <label class="field"><span>Bạn muốn hỗ trợ cho</span><select id="s-target" data-s="target">
-        <option value="all">Quỹ chung TryYourPet (chia cho các trạm)</option>
-        <optgroup label="Trạm cứu hộ">${C.stations.map(x => `<option value="station:${esc(x.id)}" ${s.target === 'station:' + x.id ? 'selected' : ''}>${esc(x.name)}${x.area ? ', ' + esc(x.area) : ''}</option>`).join('')}</optgroup>
-        ${C.pets.some(p => p.state !== 'adopted') ? `<optgroup label="Một bé cụ thể">${C.pets.filter(p => p.state !== 'adopted').map(p => `<option value="pet:${p.id}" ${s.target === 'pet:' + p.id ? 'selected' : ''}>${esc(p.name)} (${species(p.species).toLowerCase()}, ${esc(station(p.station).name)})</option>`).join('')}</optgroup>` : ''}
-      </select></label>
-      ${s.type === 'cash' ? cash : goods}
-      <div class="form-grid" style="margin-top:16px">
-        ${sinp('name', 'Họ và tên', 'text', 'autocomplete="name"')}
-        ${sinp('email', 'Email nhận xác nhận', 'email', 'autocomplete="email"')}
-        ${sinp('phone', 'Số điện thoại (không bắt buộc)', 'tel', 'autocomplete="tel" inputmode="tel"')}
-        <label class="check" style="align-self:end"><input type="checkbox" id="s-anon" data-s="anon" ${s.anon ? 'checked' : ''}>Ẩn tên tôi khi trạm cảm ơn công khai</label>
-        <label class="field full"><span>Lời nhắn cho trạm (không bắt buộc)</span><textarea id="s-note" data-s="note">${esc(s.note || '')}</textarea></label>
-      </div>
-      ${supErr._ ? `<p class="err">${esc(supErr._)}</p>` : ''}
-      <div class="nav-steps"><span></span><button class="btn" data-act="supportsubmit">${s.type === 'cash' ? 'Gửi minh chứng chuyển khoản' : 'Gửi đăng ký hỗ trợ'}</button></div>
-    </section>
-    <aside class="panel"><h3>Các trạm đang cần</h3>
-      ${C.stations.map(x => `<div class="need-block"><b>${esc(x.name)}</b><span class="meta">${esc(x.area || '')}${fbLink(x)}</span><div class="tags">${x.needs.map(n => (ITEMS.find(i => i[0] === n) || [])[1]).filter(Boolean).map(l => `<span class="tag yes">${l}</span>`).join('')}</div></div>`).join('')}
-      <p class="hint" style="margin-top:12px">Bạn nhận email xác nhận ngay khi gửi, và một email nữa khi dự án hoặc trạm đã nhận được hỗ trợ.</p>
-    </aside>
-  </div>`;
-}
-async function submitSupport(btn) {
-  const s = S.support;
-  const amount = s.amount === 'custom' ? Math.round(+s.custom || 0) : s.amount;
-  const payload = { type: s.type, target: s.target, amount, items: cleanItems(s.items), method: s.method, name: s.name, email: s.email, phone: s.phone, anon: !!s.anon, note: s.note };
-  supErr = validateSupport({ ...payload, hasProof: !!proofDraft });
-  if (Object.keys(supErr).length) { render(); return; }
-  await busy(btn, async () => {
-    try {
-      if (s.type === 'cash') payload.proof = await fileToPayload(proofDraft.file);
-      const r = await api('POST', 'supports', payload);
-      S.lastSupport = { ...r.support, type: s.type };
-      if (proofDraft) { URL.revokeObjectURL(proofDraft.url); proofDraft = null; }
-      S.support = { type: s.type, target: 'all', amount: 200000, items: {}, method: 'dropoff', name: s.name, email: s.email, phone: s.phone, anon: s.anon };
-      window.scrollTo(0, 0);
-    } catch (e) {
-      supErr = { ...(e.fields || {}), _: e.message };
-    }
-  });
-  render();
-}
-
 /* ---------- events ---------- */
 async function addPet(id, btn) {
   await busy(btn, async () => {
@@ -443,7 +321,7 @@ document.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]');
   if (!el) { if (e.target.id === 'modal') closeModal(); return; }
   const a = el.dataset.act, id = el.dataset.id;
-  if (a === 'go') { S.view = el.dataset.view; if (S.view === 'support') S.lastSupport = null; closeModal(); window.scrollTo(0, 0); }
+  if (a === 'go') { S.view = el.dataset.view; closeModal(); window.scrollTo(0, 0); }
   else if (a === 'reload') { C = null; loadError = ''; render(); return load(); }
   else if (a === 'detail') { openPetId = id; gallerySel = 0; renderDetail(); return; }
   else if (a === 'gal') { gallerySel = +el.dataset.i; renderDetail(); return; }
@@ -456,16 +334,6 @@ document.addEventListener('click', async e => {
   else if (a === 'scrollpets') { document.getElementById('pets').scrollIntoView({ behavior: 'smooth' }); return; }
   else if (a === 'filter') { S.filters[el.dataset.k] = el.dataset.v; if (el.dataset.k === 'species') S.filters.breed = 'all'; }
   else if (a === 'clearfilter') { S.filters = { species:'all', breed:'all', sex:'all', weight:'all' }; }
-  else if (a === 'supportpet') { S.support.target = 'pet:' + id; S.lastSupport = null; supErr = {}; S.view = 'support'; closeModal(); window.scrollTo(0, 0); }
-  else if (a === 'copyacct') {
-    const sel = () => { const r = document.createRange(); r.selectNodeContents(document.getElementById('acct')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
-    try { await navigator.clipboard.writeText(BANK.number); toast('Đã sao chép số tài khoản'); } catch { sel(); toast('Đã chọn số tài khoản, nhấn Ctrl+C để sao chép'); }
-    return;
-  }
-  else if (a === 'stype') { S.support.type = el.dataset.v; supErr = {}; }
-  else if (a === 'samount') { S.support.amount = el.dataset.v === 'custom' ? 'custom' : +el.dataset.v; supErr.amount = ''; }
-  else if (a === 'supportsubmit') { return submitSupport(el); }
-  else if (a === 'supportagain') { S.lastSupport = null; supErr = {}; }
   else if (a === 'startcheckout') { S.view = 'checkout'; S.step = 1; errors = {}; window.scrollTo(0, 0); }
   else if (a === 'sendotp') {
     const em = normEmail(S.draft.email);
@@ -499,8 +367,6 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.f) { S.draft[t.dataset.f] = t.value; if (t.dataset.f === 'district') render(); else saveDraft(); }
   else if (t.dataset.qt) { S.draft.answers[t.dataset.qt] = t.value; saveDraft(); }
-  else if (t.dataset.s && t.type !== 'radio' && t.tagName !== 'SELECT') { S.support[t.dataset.s] = t.type === 'checkbox' ? t.checked : t.value; saveSupport(); }
-  else if (t.dataset.item) { S.support.items[t.dataset.item] = Math.max(0, Math.floor(+t.value) || 0); }
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -508,15 +374,6 @@ document.addEventListener('change', e => {
   else if (t.dataset.q) { S.draft.answers[t.dataset.q] = t.value; saveDraft(); render(); }
   else if (t.dataset.c !== undefined) { S.draft.commits[t.dataset.c] = t.checked; }
   else if (t.dataset.adult !== undefined) { S.draft.adult = t.checked; errors.adult = ''; saveDraft(); }
-  else if (t.dataset.s === 'target' || t.dataset.s === 'method') { S.support[t.dataset.s] = t.value; render(); }
-  else if (t.id === 's-proof') {
-    const f = t.files && t.files[0];
-    if (!f) return;
-    if (!PROOF_TYPES.includes(f.type)) supErr.proof = 'Chỉ nhận ảnh JPG, PNG, WEBP hoặc file PDF.';
-    else if (f.size > FILE_MAX) supErr.proof = 'File lớn hơn 3 MB, chọn ảnh nhỏ hơn.';
-    else { if (proofDraft) URL.revokeObjectURL(proofDraft.url); proofDraft = { file: f, url: URL.createObjectURL(f) }; supErr.proof = ''; }
-    render();
-  }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
 

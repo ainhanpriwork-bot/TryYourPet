@@ -1,14 +1,13 @@
 // Admin page: sign in with Supabase Auth (email + password); every action goes through /api/admin/*,
 // where the server checks the login and the admins list again.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { QUESTIONS, ITEMS, WEEKDAYS, PHOTO_TYPES, FILE_MAX, itemsText, fmtVND } from './rules.js';
+import { QUESTIONS, WEEKDAYS, PHOTO_TYPES, FILE_MAX } from './rules.js';
 import { esc, fmtDT, fmtDay, dayChip, ageText, kg, species, toast, api, fileToPayload, busy } from './ui.js';
 
 const app = document.getElementById('app');
 const ORDER_LABEL = { review:'Chờ duyệt', confirmed:'Đã xác nhận', completed:'Đã nhận bé', cancelled:'Đã hủy' };
-const SUPPORT_LABEL = { pending:'Chờ nhận', received:'Đã nhận', rejected:'Không khớp' };
 const STATE_LABEL = { available:'Đang tìm nhà', held:'Đã có người đăng ký', adopted:'Đã có nhà', mine:'Đang giữ' };
-const TABS = [['home','Tổng quan'],['orders','Đơn nhận nuôi'],['supports','Hỗ trợ'],['pets','Thú cưng'],['stations','Trạm'],['settings','Cài đặt lịch'],['emails','Email']];
+const TABS = [['home','Tổng quan'],['orders','Đơn nhận nuôi'],['pets','Thú cưng'],['stations','Trạm'],['settings','Cài đặt lịch'],['emails','Email']];
 
 let sb = null, me = null, D = null, recovery = false;
 const UI = { tab: 'home', orderFilter: 'review', open: {}, petForm: null, petErr: {}, stationErr: {} };
@@ -77,7 +76,7 @@ async function refresh() {
 
 /* ---------- views ---------- */
 const petName = id => (D.pets.find(p => p.id === id) || { name: '(đã xóa)' }).name;
-const station = id => D.stations.find(s => s.id === id) || { name: id, needs: [] };
+const station = id => D.stations.find(s => s.id === id) || { name: id };
 const slotLabel = id => (D.slots.find(s => s.id === id) || { label: id }).label;
 function targetLabel(t) {
   if (!t || t === 'all') return 'Quỹ chung';
@@ -87,10 +86,10 @@ function targetLabel(t) {
 
 function render() {
   if (!D) { app.innerHTML = '<p class="loading">Đang tải…</p>'; return; }
-  const reviewN = D.orders.filter(o => o.status === 'review').length, pendingN = D.supports.filter(s => s.status === 'pending').length;
+  const reviewN = D.orders.filter(o => o.status === 'review').length;
   app.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap"><h1>Quản trị</h1><button class="btn ghost small" data-act="refresh">Tải lại dữ liệu</button></div>
-    <nav class="admin-tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-k="${k}" aria-pressed="${UI.tab === k}">${l}${k === 'orders' && reviewN ? ' (' + reviewN + ')' : ''}${k === 'supports' && pendingN ? ' (' + pendingN + ')' : ''}</button>`).join('')}</nav>
-    <div id="view">${({ home: vHome, orders: vOrders, supports: vSupports, pets: vPets, stations: vStations, settings: vSettings, emails: vEmails })[UI.tab]()}</div>`;
+    <nav class="admin-tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-k="${k}" aria-pressed="${UI.tab === k}">${l}${k === 'orders' && reviewN ? ' (' + reviewN + ')' : ''}</button>`).join('')}</nav>
+    <div id="view">${({ home: vHome, orders: vOrders, pets: vPets, stations: vStations, settings: vSettings, emails: vEmails })[UI.tab]()}</div>`;
 }
 
 function vHome() {
@@ -102,7 +101,6 @@ function vHome() {
       <div class="kpi"><b>${upcoming.length}</b><span>Lịch đón 7 ngày tới</span></div>
       <div class="kpi"><b>${D.holds.length}</b><span>Bé đang trong giỏ của khách</span></div>
       <div class="kpi"><b>${adopted}</b><span>Bé đã có nhà / ${D.pets.length} bé</span></div>
-      <div class="kpi ${D.supports.some(s => s.status === 'pending') ? 'attn' : ''}"><b>${D.supports.filter(s => s.status === 'pending').length}</b><span>Hỗ trợ chờ đối soát</span></div>
     </div>
     <section class="panel"><h2>Lịch đón 7 ngày tới</h2><div class="scroll"><table class="cal"><thead><tr><th>Khung giờ</th>${D.days.map(k => { const c = dayChip(k); return `<th>${c.wd} ${c.dm}</th>`; }).join('')}</tr></thead><tbody>
       ${D.slots.map(s => `<tr><th>${esc(s.label)}</th>${D.days.map(k => {
@@ -135,22 +133,6 @@ function vOrders() {
         <button class="btn small ghost" data-act="toggle" data-id="${o.id}">${UI.open[o.id] ? 'Ẩn chi tiết' : 'Chi tiết'}</button></div>
         ${UI.open[o.id] ? `<div class="detail"><div><b>Địa chỉ:</b> ${esc(o.address)}, ${esc(o.district)}</div><div><b>Nghề nghiệp:</b> ${esc(o.job)}</div><div><b>Xác nhận đủ 18 tuổi:</b> ${o.adult_confirmed ? 'Có' : 'Không'}</div>${answersHtml(o)}</div>` : ''}</td></tr>`).join('')
     : '<tr><td colspan="6" class="meta">Không có đơn ở trạng thái này.</td></tr>'}
-    </tbody></table></div></section>`;
-}
-
-function vSupports() {
-  return `<section class="panel"><h2>Hỗ trợ từ cộng đồng</h2>
-    <p class="hint" style="margin-bottom:8px">Với hỗ trợ bằng tiền: mở minh chứng, đối chiếu với sao kê ${esc(D.bank.bank)} ${esc(D.bank.number)}, rồi bấm "Đã nhận tiền" hoặc "Không khớp".</p>
-    <div class="scroll"><table><thead><tr><th>Ngày</th><th>Người hỗ trợ</th><th>Nội dung</th><th>Dành cho</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-    ${D.supports.length ? D.supports.map(s => `<tr>
-      <td>${fmtDT(s.created_at)}</td>
-      <td>${esc(s.name)}${s.anon ? ' <small class="meta">(ẩn tên công khai)</small>' : ''}<br><small class="meta">${esc(s.email)}${s.phone ? '<br>' + esc(s.phone) : ''}</small></td>
-      <td>${s.type === 'cash' ? 'Hiện kim, ' + fmtVND(s.amount) : 'Hiện vật, ' + esc(itemsText(s.items || {}))}${s.method ? `<br><small class="meta">${s.method === 'ship' ? 'Gửi chuyển phát' : 'Mang đến trạm'}</small>` : ''}${s.note ? `<div class="detail">${esc(s.note)}</div>` : ''}</td>
-      <td>${esc(targetLabel(s.target))}</td>
-      <td><span class="pill ${s.status === 'received' ? 'completed' : s.status === 'rejected' ? 'cancelled' : 'review'}">${SUPPORT_LABEL[s.status]}</span>${s.decided_by ? `<br><small class="meta">Xử lý: ${esc(s.decided_by)}</small>` : ''}</td>
-      <td><div class="acts">${s.hasProof ? `<button class="btn small ghost" data-act="proof" data-id="${s.id}">Xem minh chứng</button>` : ''}
-        ${s.status === 'pending' ? `<button class="btn small" data-act="support" data-a="received" data-id="${s.id}">${s.type === 'cash' ? 'Đã nhận tiền' : 'Đã nhận đồ'}</button>${s.type === 'cash' ? `<button class="btn small danger" data-act="support" data-a="rejected" data-id="${s.id}">Không khớp</button>` : ''}` : ''}</div></td></tr>`).join('')
-    : '<tr><td colspan="6" class="meta">Chưa có lượt hỗ trợ nào.</td></tr>'}
     </tbody></table></div></section>`;
 }
 
@@ -202,15 +184,14 @@ function stationForm(s, isNew) {
       <label class="field"><span>Tên trạm</span><input type="text" data-st="name" value="${esc(s.name || '')}"><span class="err">${esc(e.name || '')}</span></label>
       <label class="field"><span>Khu vực</span><input type="text" data-st="area" value="${esc(s.area || 'TP.HCM')}"></label>
       <label class="field"><span>Số điện thoại</span><input type="tel" data-st="phone" value="${esc(s.phone || '')}"></label>
-      <label class="field full"><span>Địa chỉ đón bé và nhận đồ</span><input type="text" data-st="address" value="${esc(s.address || '')}" placeholder="Số nhà, đường, phường, quận"></label>
+      <label class="field full"><span>Địa chỉ đón bé</span><input type="text" data-st="address" value="${esc(s.address || '')}" placeholder="Số nhà, đường, phường, quận"></label>
       <label class="field"><span>Trang Facebook</span><input type="text" data-st="facebook" value="${esc(s.facebook || '')}" placeholder="https://"><span class="err">${esc(e.facebook || '')}</span></label>
       <label class="field"><span>Email trạm</span><input type="email" data-st="email" value="${esc(s.email || '')}"><span class="err">${esc(e.email || '')}</span></label>
-      <div class="field full"><span>Đồ trạm đang cần</span><div class="choices">${ITEMS.map(([k, l]) => `<label class="choice"><input type="checkbox" data-need="${k}" ${(s.needs || []).includes(k) ? 'checked' : ''}>${l}</label>`).join('')}</div></div>
     </div>
     <div class="nav-steps"><span></span><button class="btn" data-act="stationsave">${isNew ? 'Thêm trạm' : 'Lưu trạm'}</button></div></section>`;
 }
 function vStations() {
-  return D.stations.map(s => stationForm(s, false)).join('') + stationForm({ needs: [] }, true);
+  return D.stations.map(s => stationForm(s, false)).join('') + stationForm({}, true);
 }
 
 function vSettings() {
@@ -291,17 +272,6 @@ document.addEventListener('click', async e => {
     await busy(el, async () => { try { await call('POST', 'admin/orders/action', { id, action: act }); toast('Đã cập nhật đơn.'); await refresh(); } catch (err) { toast(err.message); } });
     return;
   }
-  if (a === 'support') {
-    if (el.dataset.a === 'rejected' && !confirm('Đánh dấu minh chứng không khớp? Người hỗ trợ sẽ nhận email đề nghị gửi lại thông tin.')) return;
-    await busy(el, async () => { try { await call('POST', 'admin/supports/action', { id, action: el.dataset.a }); toast('Đã cập nhật.'); await refresh(); } catch (err) { toast(err.message); } });
-    return;
-  }
-  if (a === 'proof') {
-    const w = window.open('', '_blank');
-    try { const r = await call('GET', 'admin/supports/proof?id=' + encodeURIComponent(id)); if (w) w.location = r.url; else location.href = r.url; }
-    catch (err) { if (w) w.close(); toast(err.message); }
-    return;
-  }
   if (a === 'petnew') { newPetForm(null); render(); return; }
   if (a === 'petedit') { newPetForm(D.pets.find(p => p.id === id)); render(); document.getElementById('petform').scrollIntoView(); return; }
   if (a === 'petcancel') { UI.petForm.newFiles.forEach(f => URL.revokeObjectURL(f.url)); UI.petForm = null; render(); return; }
@@ -310,7 +280,7 @@ document.addEventListener('click', async e => {
   if (a === 'petsave') { await savePet(el); return; }
   if (a === 'stationsave') {
     const box = el.closest('[data-station]'), isNew = !box.dataset.station;
-    const s = { needs: [...box.querySelectorAll('[data-need]')].filter(x => x.checked).map(x => x.dataset.need) };
+    const s = {};
     box.querySelectorAll('[data-st]').forEach(x => { s[x.dataset.st] = x.value; });
     await busy(el, async () => {
       try { await call('POST', 'admin/stations/save', { station: s }); toast('Đã lưu trạm ' + s.name); if (isNew) UI.stationErr = {}; await refresh(); }

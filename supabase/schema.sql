@@ -92,25 +92,6 @@ create table if not exists otp_codes (
   sent_at     timestamptz not null default now()
 );
 
-create table if not exists supports (
-  id          uuid primary key default gen_random_uuid(),
-  code        text not null unique,
-  type        text not null check (type in ('cash','items')),
-  target      text not null default 'all',
-  amount      int,
-  items       jsonb,
-  method      text,
-  name        text not null,
-  anon        boolean not null default false,
-  email       text not null,
-  phone       text,
-  note        text,
-  proof_path  text,
-  status      text not null default 'pending' check (status in ('pending','received','rejected')),
-  decided_by  text,
-  created_at  timestamptz not null default now()
-);
-
 create table if not exists email_log (
   id          bigserial primary key,
   to_email    text not null,
@@ -132,7 +113,6 @@ alter table settings  enable row level security;
 alter table orders    enable row level security;
 alter table holds     enable row level security;
 alter table otp_codes enable row level security;
-alter table supports  enable row level security;
 alter table email_log enable row level security;
 alter table admins    enable row level security;
 

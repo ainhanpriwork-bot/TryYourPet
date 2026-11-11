@@ -4,8 +4,8 @@ Web gồm 3 phần, đều có gói miễn phí:
 
 | Phần | Dịch vụ | Làm gì |
 |---|---|---|
-| Website và máy chủ | Vercel | Hiển thị trang, chạy các xử lý (giữ chỗ, đơn, hỗ trợ), tự dọn giữ chỗ quá hạn và đơn trễ hẹn |
-| Cơ sở dữ liệu, đăng nhập, lưu ảnh | Supabase | Lưu các bé, đơn, hỗ trợ; tài khoản quản trị; ảnh bé và ảnh minh chứng |
+| Website và máy chủ | Vercel | Hiển thị trang, chạy các xử lý (giữ chỗ, đơn nhận nuôi), tự dọn giữ chỗ quá hạn và đơn trễ hẹn |
+| Cơ sở dữ liệu, đăng nhập, lưu ảnh | Supabase | Lưu các bé và đơn nhận nuôi; tài khoản quản trị; ảnh các bé |
 | Email | Gmail của dự án | Gửi mã xác thực, xác nhận đơn, nhắc lịch, thông báo cho quản trị viên |
 
 Làm lần lượt 4 bước dưới đây. Mỗi bước khoảng 5–10 phút.
@@ -62,7 +62,7 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
 ## Bước 4. Nhập dữ liệu và chạy thử
 
 1. Mở `https://<địa-chỉ-web>/admin.html` và đăng nhập bằng một tài khoản quản trị.
-2. Tab **Trạm**: điền địa chỉ đón bé, số điện thoại, đồ đang cần cho từng trạm. Thêm trạm nhận chó nếu có.
+2. Tab **Trạm**: điền địa chỉ đón bé và số điện thoại của từng trạm. Thêm trạm nhận chó nếu có.
 3. Tab **Thú cưng**: bấm **Thêm bé mới**, nhập hồ sơ và tải ảnh cho từng bé. Video thì dán link YouTube, Facebook hoặc Google Drive.
 4. Tab **Cài đặt lịch**: chọn ngày mở cửa và số khách tối đa mỗi khung giờ.
 5. Ở trang chủ, thử một vòng: thêm bé vào nhà, nhận mã xác thực qua email, gửi đơn. Sau đó vào trang quản trị duyệt đơn.
@@ -73,7 +73,6 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
 - **Ngày đón bé**: khi giao bé xong, bấm **Đã giao bé**. Bé chuyển sang "Đã có nhà".
   - Khách không đến thì bấm **Vắng mặt**.
   - Nếu quên bấm, hệ thống tự hủy đơn 2 tiếng sau khi hết khung giờ hẹn và nhả bé.
-- **Hỗ trợ bằng tiền**: tab **Hỗ trợ** → **Xem minh chứng**, đối chiếu với sao kê Vietcombank, rồi bấm **Đã nhận tiền** hoặc **Không khớp**. Người hỗ trợ nhận email báo kết quả.
 - **Email**: tab **Email** liệt kê 20 email gần nhất. Email gửi lỗi được đánh dấu đỏ.
 - **Tự động**: mỗi khi có người mở web (tối đa 10 phút một lần) và mỗi sáng 7 giờ, hệ thống:
   - Nhả các bé giữ chỗ quá 7 ngày.
@@ -84,7 +83,7 @@ Gmail gửi được khoảng 500 email mỗi ngày, dư cho quy mô hiện tạ
 
 ```bash
 npm install
-npm test          # 15 bài kiểm tra cho toàn bộ máy chủ, chạy trên Postgres giả lập
+npm test          # 13 bài kiểm tra cho toàn bộ máy chủ, chạy trên Postgres giả lập
 npm run dev       # mở http://127.0.0.1:8888 và /admin.html, email in ra màn hình
 ```
 
@@ -97,6 +96,5 @@ npm run dev       # mở http://127.0.0.1:8888 và /admin.html, email in ra màn
   - Người nhận nuôi đủ 18 tuổi.
   - Sức chứa mỗi khung giờ.
   - Bắt buộc xác thực email.
-- Ảnh minh chứng chuyển khoản nằm trong kho riêng tư. Trang quản trị chỉ mở bằng link có hạn 5 phút.
 - Web không thu số CCCD. Người nhận nuôi chỉ tick xác nhận đã đủ 18 tuổi và mang giấy tờ tùy thân khi đến trạm để đối chiếu tên.
 - Địa chỉ, số điện thoại và nghề nghiệp của người nhận nuôi chỉ hiện trong trang quản trị. Theo Nghị định 13/2023/NĐ-CP, web vẫn nên có trang chính sách quyền riêng tư nói rõ thu những thông tin gì, để làm gì, lưu bao lâu, và cách yêu cầu xóa.

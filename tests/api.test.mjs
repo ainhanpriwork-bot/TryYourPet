@@ -155,34 +155,6 @@ test('maintenance cancels missed appointments, reminds the day before, releases 
   assert.equal((await h.app.maintenance()).released, 1, 'V2 hold is past 7 days, the newer one is not');
 });
 
-test('support: cash needs a real image proof, stored privately; admin can view and confirm', async () => {
-  const h = await makeHarness();
-  const base = { type: 'cash', amount: 150000, name: 'Lê A', email: 'a@example.com', target: 'station:VML' };
-  assert.match((await h.call('POST', 'supports', base)).body.fields.proof, /minh chứng/);
-  const fake = await h.call('POST', 'supports', { ...base, proof: { name: 'x.png', type: 'image/png', data: Buffer.from('not an image').toString('base64') } });
-  assert.match(fake.body.error, /không khớp/);
-  assert.equal((await h.call('POST', 'supports', { ...base, amount: 5000, proof: { name: 'x.png', type: 'image/png', data: PNG } })).status, 400);
-  const ok = await h.call('POST', 'supports', { ...base, proof: { name: 'x.png', type: 'image/png', data: PNG } });
-  assert.equal(ok.status, 200, JSON.stringify(ok.body));
-  assert.equal(ok.body.support.target, 'Vườn Mèo Lang Thang');
-  assert.ok(Object.keys(h.files).some(k => k.startsWith('proofs/')));
-  const s = (await h.admin('GET', 'admin/overview')).body.supports[0];
-  assert.equal(s.hasProof, true);
-  assert.equal(s.proof_path, undefined, 'storage path is not exposed');
-  assert.match((await h.admin('GET', 'admin/supports/proof', null, { id: s.id })).body.url, /signed\/proofs\//);
-  assert.equal((await h.admin('POST', 'admin/supports/action', { id: s.id, action: 'received' })).status, 200);
-  assert.equal((await h.admin('POST', 'admin/supports/action', { id: s.id, action: 'received' })).status, 409);
-});
-
-test('support: items need at least one quantity and no proof', async () => {
-  const h = await makeHarness();
-  const base = { type: 'items', name: 'Lê A', email: 'a@example.com', method: 'ship' };
-  assert.equal((await h.call('POST', 'supports', { ...base, items: { pate: 0 } })).status, 400);
-  const ok = await h.call('POST', 'supports', { ...base, items: { pate: 6, unknown: 3 } });
-  assert.equal(ok.status, 200);
-  assert.equal(ok.body.support.what, '6 hộp pate, đồ ăn ướt');
-});
-
 test('admin: settings, stations and pet photos', async () => {
   const h = await makeHarness();
   assert.equal((await h.admin('POST', 'admin/settings', { openDays: [], capacities: {} })).status, 400);
@@ -190,9 +162,9 @@ test('admin: settings, stations and pet photos', async () => {
   const cat = (await h.call('GET', 'catalog')).body;
   assert.ok(cat.days.every(d => [1, 2].includes(d.weekday)));
   assert.equal(cat.days[0].slots.find(s => s.id === 's1').capacity, 5);
-  assert.equal((await h.admin('POST', 'admin/stations/save', { station: { id: 'VML', name: 'Vườn Mèo Lang Thang', address: '1 Đường A', needs: ['catfood', 'bogus'] } })).status, 200);
-  assert.deepEqual(cat.stations.find(s => s.id === 'VML').needs, ['catfood', 'litter', 'milk']);
-  assert.deepEqual((await h.call('GET', 'catalog')).body.stations.find(s => s.id === 'VML').needs, ['catfood']);
+  assert.equal((await h.admin('POST', 'admin/stations/save', { station: { id: 'VML', name: 'Vườn Mèo Lang Thang', address: '1 Đường A' } })).status, 200);
+  assert.equal((await h.call('GET', 'catalog')).body.stations.find(s => s.id === 'VML').address, '1 Đường A');
+  assert.equal((await h.call('POST', 'supports', { type: 'cash' })).status, 404, 'support route is gone');
   const id = await h.addPet({ name: 'Mướp' });
   const save = await h.admin('POST', 'admin/pets/save', { pet: { id, name: 'Mướp', species: 'cat', sex: 'Cái', age: 8, weight: 3, station: 'VML' }, newPhotos: [{ name: 'a.png', type: 'image/png', data: PNG }] });
   assert.equal(save.status, 200);

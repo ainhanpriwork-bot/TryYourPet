@@ -1,17 +1,13 @@
-// Adoption and support rules shared by the browser and the server (Vercel Functions).
+// Adoption rules shared by the browser and the server (Vercel Functions).
 // The browser uses them to show errors early; the server re-checks everything before saving.
 
 export const HOLD_DAYS = 7;
 export const MAX_PETS = 2;
 export const BOOKING_DAYS = 6;           // how many upcoming open days a visitor can book
 export const NO_SHOW_GRACE_HOURS = 2;    // an order is cancelled this long after its slot ends
-export const MIN_AMOUNT = 10000;
-export const PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const FILE_MAX = 3 * 1024 * 1024; // 3 MB: Vercel caps request bodies at 4.5 MB and base64 adds a third
 export const VN_OFFSET_H = 7;            // Vietnam is UTC+7 all year
-
-export const BANK = { bank: 'Vietcombank', number: '1026229658', holder: 'DANG HUONG GIANG', role: 'Project Manager TryYourPet', qr: 'assets/vcb-qr.png' };
 
 export const DISTRICTS = ['Quận 1','Quận 3','Quận 4','Quận 5','Quận 6','Quận 7','Quận 8','Quận 10','Quận 11','Quận 12','Q. Bình Tân','Q. Bình Thạnh','Q. Gò Vấp','Q. Phú Nhuận','Q. Tân Bình','Q. Tân Phú','TP. Thủ Đức','H. Bình Chánh','H. Cần Giờ','H. Củ Chi','H. Hóc Môn','H. Nhà Bè'];
 export const OUTSIDE = 'Ngoài TP.HCM cũ';
@@ -35,12 +31,6 @@ export const COMMITS = [
   'Không bán, cho, hoặc bỏ rơi bé. Nếu không nuôi được sẽ báo trạm.',
   'Gửi ảnh hoặc video cập nhật về bé cho trạm hằng tháng trong 3 tháng đầu.',
   'Tôi hiểu rằng không thể tự đổi hoặc hủy lịch nhận. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.'
-];
-
-export const ITEMS = [
-  ['dogfood','Thức ăn hạt cho chó','kg'], ['catfood','Thức ăn hạt cho mèo','kg'], ['pate','Pate, đồ ăn ướt','hộp'],
-  ['milk','Sữa cho chó mèo con','hộp'], ['litter','Cát vệ sinh cho mèo','túi'], ['med','Thuốc, vật tư y tế (bông, băng, sát khuẩn)','phần'],
-  ['gear','Đồ dùng: bát ăn, dây dắt, lồng vận chuyển','món'], ['pad','Tã lót, khăn lau','gói']
 ];
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -117,25 +107,3 @@ export function cleanAnswers(a, hasCat) {
   return out;
 }
 
-/* ---------- support ---------- */
-export function validateSupport(s) {
-  const e = {};
-  if (s.type !== 'cash' && s.type !== 'items') e.type = 'Chọn hình thức hỗ trợ.';
-  if (s.type === 'cash' && !(Number.isInteger(s.amount) && s.amount >= MIN_AMOUNT)) e.amount = 'Số tiền tối thiểu là 10.000đ.';
-  if (s.type === 'cash' && !s.hasProof) e.proof = 'Tải lên ảnh chụp minh chứng chuyển khoản.';
-  if (s.type === 'items' && !ITEMS.some(([k]) => (s.items || {})[k] > 0)) e.items = 'Nhập số lượng cho ít nhất một món.';
-  if (!String(s.name || '').trim()) e.name = 'Nhập họ tên để trạm ghi nhận.';
-  if (!EMAIL_RE.test(normEmail(s.email))) e.contact = 'Nhập email để nhận xác nhận.';
-  return e;
-}
-
-export function cleanItems(items) {
-  const out = {};
-  ITEMS.forEach(([k]) => { const n = Math.floor(Number((items || {})[k]) || 0); if (n > 0) out[k] = Math.min(n, 999); });
-  return out;
-}
-
-export function itemsText(items) {
-  return ITEMS.filter(([k]) => (items || {})[k] > 0).map(([k, l, u]) => items[k] + ' ' + u + ' ' + l.toLowerCase()).join(', ');
-}
-export const fmtVND = n => Number(n).toLocaleString('vi-VN') + 'đ';

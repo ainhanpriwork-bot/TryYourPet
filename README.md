@@ -1,6 +1,6 @@
 # TryYourPet
 
-TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng, nhằm tìm mái nhà phù hợp cho các bé chó, mèo ở TP.HCM, thông qua nhận nuôi hoặc hỗ trợ hiện kim, hiện vật.
+TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng, nhằm tìm mái nhà phù hợp cho các bé chó, mèo ở TP.HCM, thông qua nhận nuôi.
 
 ## Chức năng
 
@@ -8,10 +8,8 @@ TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ v�
   - Xem hồ sơ các bé, lọc theo loài, giống, giới tính, cân nặng.
   - Thêm bé vào "Nhà của tôi": tối đa 2 bé cùng trạm, giữ chỗ 7 ngày.
   - Đăng ký nhận nuôi: xác thực email bằng mã, câu hỏi sàng lọc, chọn lịch đón bé tại trạm. Đơn đạt yêu cầu được xác nhận ngay.
-  - Hỗ trợ bằng tiền (chuyển khoản rồi gửi ảnh minh chứng) hoặc hiện vật.
 - **Quản trị** (`/admin.html`, đăng nhập bằng email và mật khẩu):
   - Duyệt đơn, đánh dấu đã giao bé hoặc vắng mặt.
-  - Đối soát hỗ trợ qua ảnh minh chứng.
   - Quản lý hồ sơ và ảnh các bé, thông tin trạm, ngày mở cửa và sức chứa khung giờ.
   - Xem nhật ký email.
 - **Tự động** (khi có người truy cập và mỗi sáng): nhả bé giữ chỗ quá hạn, hủy đơn trễ hẹn, nhắc lịch trước 1 ngày.
