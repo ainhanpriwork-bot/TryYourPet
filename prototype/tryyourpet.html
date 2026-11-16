@@ -267,6 +267,15 @@ footer .wrap{padding-block:18px;display:flex;justify-content:space-between;gap:1
   .row-pet>.btn{grid-column:2;justify-self:start}
   .result-count{margin-left:0}
 }
+.flow.three{grid-template-columns:repeat(3,1fr)}
+.contact{display:grid;gap:12px;background:var(--sunk);border-radius:14px;padding:16px;font-size:14px}
+.contact-actions{display:flex;flex-wrap:wrap;gap:8px}
+.contact .phone{font-variant-numeric:tabular-nums;white-space:nowrap}
+.contact-panel{margin-top:28px}
+.contact-panel .contact{background:none;padding:0}
+.note{background:var(--sun-soft);color:var(--sun-ink);font-size:13px;padding:8px 12px;border-radius:8px}
+.kpis.two-kpis{grid-template-columns:repeat(2,1fr)}
+@media (max-width:560px){.flow.three{grid-template-columns:1fr}.contact-actions .btn{flex:1 1 100%}}
 </style>
 
 <header class="bar">
@@ -281,7 +290,14 @@ footer .wrap{padding-block:18px;display:flex;justify-content:space-between;gap:1
 <div id="toast" hidden></div>
 
 <script>
-const DAY = 864e5, HOLD_DAYS = 7, MAX_PETS = 2, LS = 'tryyourpet-demo-v4';
+const LS = 'tryyourpet-demo-v5';
+const CONTACT = {
+  fanpages: [
+    { name: 'Purr Nature', page: 'https://www.facebook.com/purr.nature.store/', messenger: 'https://m.me/purr.nature.store' },
+    { name: 'Try Your Pet', page: 'https://www.facebook.com/profile.php?id=61595854864529', messenger: 'https://m.me/61595854864529' }
+  ],
+  phone: { name: 'Đặng Hương Giang', role: 'PM', number: '0364124467', display: '0364 124 467' }
+};
 
 const STATIONS = {
   VML: { name: 'Vườn Mèo Lang Thang', area: 'TP.HCM', addr: 'địa chỉ đón bé cập nhật sau', fb: 'https://www.facebook.com/vuonmeolangthang/', email: 'vuonmeolangthangoffical@gmail.com' },
@@ -305,101 +321,20 @@ const PETS = [
   { id:'P12', name:'Sữa', species:'cat', breed:'Mèo ta', sex:'Cái', age:11, weight:3.0, vaccine:'Đã tiêm 4 bệnh + dại', neutered:true, traits:['Nghịch ngợm','Thích đồ chơi','Hợp trẻ em'], story:'Sữa được cứu cùng 2 anh em ở Quận 4. Bé rất quấn người và thích chơi cần câu mèo.', station:'VML', fur:'#F7F3EC', ear:'#E4B9A8', bg:'#DDEBE4', video:'0:31' }
 ];
 
-const DISTRICTS = ['Quận 1','Quận 3','Quận 4','Quận 5','Quận 6','Quận 7','Quận 8','Quận 10','Quận 11','Quận 12','Q. Bình Tân','Q. Bình Thạnh','Q. Gò Vấp','Q. Phú Nhuận','Q. Tân Bình','Q. Tân Phú','TP. Thủ Đức','H. Bình Chánh','H. Cần Giờ','H. Củ Chi','H. Hóc Môn','H. Nhà Bè'];
-const OUTSIDE = 'Ngoài TP.HCM cũ';
-const WEEKDAYS = ['CN','T2','T3','T4','T5','T6','T7'];
-
-const QUESTIONS = [
-  { id:'exp', t:'Bạn đã từng nuôi chó hoặc mèo chưa?', opts:[['never','Chưa từng'],['past','Đã từng nuôi'],['now','Đang nuôi']] },
-  { id:'otherPets', t:'Hiện nhà bạn có thú cưng khác không?', opts:[['none','Không có'],['vac','Có, đã tiêm phòng đủ'],['novac','Có, chưa tiêm phòng đủ']], flag:{ novac:'Thú cưng hiện tại chưa tiêm phòng đủ' } },
-  { id:'housing', t:'Bạn đang ở loại nhà nào?', opts:[['own','Nhà riêng của gia đình'],['rent','Nhà thuê nguyên căn'],['apt','Chung cư'],['room','Phòng trọ']] },
-  { id:'permit', t:'Chủ nhà hoặc ban quản lý có cho phép nuôi chó mèo không?', opts:[['na','Nhà của tôi, không cần xin phép'],['yes','Có, đã cho phép'],['unsure','Chưa rõ'],['no','Không cho phép']], flag:{ unsure:'Chưa rõ chủ nhà/ban quản lý có cho nuôi', no:'Nơi ở không cho phép nuôi' } },
-  { id:'family', t:'Mọi người sống cùng có đồng ý nuôi bé không?', opts:[['yes','Có, mọi người đồng ý'],['alone','Tôi sống một mình'],['no','Chưa thống nhất']], flag:{ no:'Gia đình chưa thống nhất việc nuôi' } },
-  { id:'allergy', t:'Trong nhà có ai bị dị ứng lông chó mèo không?', opts:[['no','Không'],['mild','Có, nhẹ và kiểm soát được'],['yes','Có, dị ứng rõ']], flag:{ yes:'Có người dị ứng lông thú' } },
-  { id:'alone', t:'Mỗi ngày bé phải ở nhà một mình khoảng bao lâu?', opts:[['lt4','Dưới 4 giờ'],['4to8','4–8 giờ'],['8to10','8–10 giờ'],['gt10','Trên 10 giờ']], flag:{ gt10:'Bé phải ở một mình trên 10 giờ/ngày' } },
-  { id:'cats', t:'Cửa sổ và ban công nhà bạn đã có lưới chắn chưa?', onlyCat:true, opts:[['yes','Đã có'],['will','Sẽ lắp trước khi đón bé'],['no','Không định lắp']], flag:{ no:'Không lắp lưới chắn cho mèo' } },
-  { id:'budget', t:'Bạn sẵn sàng dành khoảng 500.000–1.000.000đ/tháng cho thức ăn, cát, thú y?', opts:[['yes','Sẵn sàng'],['unsure','Chưa chắc'],['no','Không']], flag:{ no:'Chưa sẵn sàng chi phí nuôi' } },
-  { id:'cannot', t:'Nếu sau này không thể nuôi tiếp, bạn sẽ làm gì?', opts:[['return','Liên hệ trạm để trả bé về'],['rehome','Tự tìm người nhận, báo trạm trước'],['other','Khác']], flag:{ other:'Phương án khi không nuôi tiếp cần trao đổi thêm' } }
-];
-const COMMITS = [
-  'Không xích hoặc nhốt bé trong lồng phần lớn thời gian trong ngày.',
-  'Không bán, cho, hoặc bỏ rơi bé. Nếu không nuôi được sẽ báo trạm.',
-  'Gửi ảnh hoặc video cập nhật về bé cho trạm hằng tháng trong 3 tháng đầu.',
-  'Tôi hiểu rằng không thể tự đổi hoặc hủy lịch nhận. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.'
-];
-
-function defaultSettings(){
-  return {
-    openDays:[2,3,4,5,6,0],
-    station:[{id:'s1',label:'09:00–11:00',end:11,cap:2},{id:'s2',label:'14:00–16:00',end:16,cap:2},{id:'s3',label:'16:00–18:00',end:18,cap:2}]
-  };
-}
-const pad = n => String(n).padStart(2,'0');
-const dkey = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-const dparse = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y,m-1,d); };
-const startOfDay = t => { const d = new Date(t); d.setHours(0,0,0,0); return d; };
-const fmtDay = k => dparse(k).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'});
-const fmtDT = t => new Date(t).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pet = id => PETS.find(p => p.id === id);
 const ageText = m => m < 12 ? m+' tháng' : (m % 12 ? (m/12).toFixed(1).replace('.',',')+' tuổi' : (m/12)+' tuổi');
 const kg = w => String(w).replace('.',',')+' kg';
 const species = s => s === 'cat' ? 'Mèo' : 'Chó';
 
-function nextOpenDays(settings, from, count){
-  const out = []; let d = startOfDay(from);
-  for (let i = 0; i < 30 && out.length < count; i++){ d = new Date(d.getTime()+DAY); if (settings.openDays.includes(d.getDay())) out.push(dkey(d)); }
-  return out;
-}
-function seed(){
-  const now = Date.now(), st = defaultSettings();
-  const days = nextOpenDays(st, now, 4);
-  const end = (k, slot) => dparse(k).getTime() + (slot.end + 2) * 3600e3;
-  const o1 = { id:'TYP-1024-0031', pets:['P04'], status:'confirmed', createdAt:now-2*DAY, method:'station', date:days[0], slot:'s1', apptEnd:end(days[0],st.station[0]), flags:[], example:true,
-    customer:{ name:'Nguyễn Minh Anh', phone:'0903 112 233', email:'minhanh@example.com', address:'21 Hoa Lan', district:'Q. Phú Nhuận', job:'Kế toán' } };
-  const o2 = { id:'TYP-1024-0032', pets:['P07'], status:'review', createdAt:now-DAY, method:'station', date:days[2], slot:'s3', apptEnd:end(days[2],st.station[2]), flags:['Chưa rõ chủ nhà/ban quản lý có cho nuôi'], example:true,
-    customer:{ name:'Trần Quốc Bảo', phone:'0938 445 566', email:'quocbao@example.com', address:'Chung cư Sunrise, Block B', district:'Quận 7', job:'Kỹ sư phần mềm' } };
-  const o3 = { id:'TYP-1018-0027', pets:['P11'], status:'completed', createdAt:now-9*DAY, method:'station', date:dkey(new Date(now-5*DAY)), slot:'s2', apptEnd:now-5*DAY, flags:[], example:true,
-    customer:{ name:'Lê Thu Hà', phone:'0912 778 899', email:'thuha@example.com', address:'5 Lê Văn Sỹ', district:'Quận 3', job:'Giáo viên' } };
-  return {
-    v:2, view:'list', step:1, settings:st, lastOrder:null, adminTab:'all',
-    filters:{ species:'all', breed:'all', sex:'all', weight:'all' },
-    holds:[ { petId:'P04', owner:'other', until:o1.apptEnd, orderId:o1.id }, { petId:'P07', owner:'other', until:o2.apptEnd, orderId:o2.id }, { petId:'P02', owner:'other', until:now+4*DAY } ],
-    orders:[o1,o2,o3],
-    adopted:{ P11:now-5*DAY },
-    emails:[ { to:'minhanh@example.com', subject:'Đơn TYP-1024-0031 đã được xác nhận', at:now-2*DAY }, { to:'quanly@tryyourpet.vn', subject:'Đơn TYP-1024-0032 cần duyệt thủ công', at:now-DAY } ],
-    draft:{ answers:{}, commits:{}, method:'station' }
-  };
-}
+/* Demo state: only filters and which pets are marked adopted, kept in this browser. */
+function seed(){ return { v:5, view:'list', filters:{ species:'all', breed:'all', sex:'all', weight:'all' }, adopted:{ P11:true } }; }
 let S;
 try { S = JSON.parse(localStorage.getItem(LS)); } catch(e) { S = null; }
-if (!S || S.v !== 2) S = seed();
+if (!S || S.v !== 5) S = seed();
 function save(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) {} }
-
-function mail(to, subject){ S.emails.unshift({ to, subject, at:Date.now() }); }
-function releaseOrder(o){ S.holds = S.holds.filter(h => h.orderId !== o.id); }
-function sweep(){
-  const now = Date.now();
-  S.orders.forEach(o => {
-    if ((o.status === 'confirmed' || o.status === 'review') && o.apptEnd < now){
-      o.status = 'cancelled'; o.cancelReason = 'Không đến đúng hẹn'; releaseOrder(o);
-      mail(o.customer.email, 'Đơn '+o.id+' đã bị hủy do không đến đúng hẹn');
-    }
-  });
-  S.holds = S.holds.filter(h => h.until > now);
-}
-function petState(id){
-  if (S.adopted[id]) return 'adopted';
-  const h = S.holds.find(h => h.petId === id);
-  if (!h) return 'available';
-  return h.owner === 'me' && !h.orderId ? 'mine' : 'held';
-}
-const STATE_LABEL = { available:'Đang tìm nhà', mine:'Trong nhà bạn', held:'Đã có người đăng ký', adopted:'Đã có nhà' };
-const ORDER_LABEL = { confirmed:'Đã xác nhận', review:'Chờ duyệt', completed:'Đã nhận bé', cancelled:'Đã hủy' };
-const myHolds = () => S.holds.filter(h => h.owner === 'me' && !h.orderId);
-function slotsFor(){ return S.settings.station; }
-function slotById(id){ return S.settings.station.find(s => s.id === id); }
-function booked(method, date, slot){ return S.orders.filter(o => o.method === method && o.date === date && o.slot === slot && (o.status === 'confirmed' || o.status === 'review')).length; }
+const petState = id => S.adopted[id] ? 'adopted' : 'available';
+const STATE_LABEL = { available:'Đang tìm nhà', adopted:'Đã có nhà' };
 
 /* Mascot placeholder; the real site swaps these for the station's photos */
 const BRAND_BG = ['#FFE7A3','#D6DFFF','#FFD6C8'];
@@ -412,13 +347,27 @@ function art(p, v = 0){
   return `<div class="ph" style="background:${BRAND_BG[(i + v) % 3]}"><img src="assets/${poses[(i + v) % poses.length]}.png" alt="Ảnh minh họa ${esc(p.name)}" loading="lazy"><span>Ảnh minh họa ${v+1}/3</span></div>`;
 }
 
+/** Ways to adopt: message one of the fanpages, or call the project manager. */
+function contactBlock(p){
+  const ph = CONTACT.phone;
+  return `<div class="contact">
+    ${p ? `<p>Muốn đón <b>${esc(p.name)}</b> về nhà? Nhắn tin cho một trong hai fanpage hoặc gọi điện, nhớ nói tên bé để trạm hỗ trợ nhanh hơn.</p>`
+        : '<p>Chọn bé bạn thương, rồi nhắn tin cho một trong hai fanpage hoặc gọi điện. Nhớ nói tên bé để trạm hỗ trợ nhanh hơn.</p>'}
+    <div class="contact-actions">
+      ${CONTACT.fanpages.map(f => `<a class="btn" href="${f.messenger}" target="_blank" rel="noopener">Inbox ${esc(f.name)}</a>`).join('')}
+      <a class="btn add" href="tel:${ph.number}">Gọi ${ph.display}</a>
+    </div>
+    <p class="hint">${CONTACT.fanpages.map(f => `<a href="${f.page}" target="_blank" rel="noopener">Fanpage ${esc(f.name)}</a>`).join(', ')}. Số điện thoại: ${ph.role} ${esc(ph.name)}, <b class="phone">${ph.display}</b>.</p>
+  </div>`;
+}
+
 /* ---------- views ---------- */
 const app = document.getElementById('app');
 function renderNav(){
-  const n = myHolds().length, v = S.view;
+  const v = S.view;
   document.getElementById('nav').innerHTML = `
     <button data-act="go" data-view="list" aria-current="${v === 'list'}">Thú cưng</button>
-    <button data-act="go" data-view="home" aria-current="${v === 'home' || v === 'checkout'}">Nhà của tôi <span class="count" aria-label="${n} bé">${n}</span></button>
+    <button data-act="contact">Liên hệ nhận nuôi</button>
     ${IS_ADMIN ? `<button data-act="go" data-view="admin" aria-current="${v === 'admin'}">Quản trị</button>` : ''}`;
 }
 /* Admin is shown only to the artifact's owner, as reported by the Claude viewer.
@@ -433,24 +382,21 @@ async function detectAdmin(){
 }
 function render(){
   if (S.view === 'admin' && !IS_ADMIN) S.view = 'list';
-  sweep(); save(); renderNav();
-  ({ list:viewList, home:viewHome, checkout:viewCheckout, done:viewDone, admin:viewAdmin })[S.view]();
+  save(); renderNav();
+  (S.view === 'admin' ? viewAdmin : viewList)();
 }
 
 function filtered(){
   const f = S.filters;
   return PETS.filter(p =>
-    (f.species === 'all' || p.species === f.species) &&
-    (f.breed === 'all' || p.breed === f.breed) &&
-    (f.sex === 'all' || p.sex === f.sex) &&
+    (f.species === 'all' || p.species === f.species) && (f.breed === 'all' || p.breed === f.breed) && (f.sex === 'all' || p.sex === f.sex) &&
     (f.weight === 'all' || ({ s:p.weight < 5, m:p.weight >= 5 && p.weight < 10, l:p.weight >= 10 && p.weight < 20, xl:p.weight >= 20 })[f.weight])
   ).sort((a,b) => (petState(a.id) === 'adopted') - (petState(b.id) === 'adopted'));
 }
 function cardActions(p){
-  const st = petState(p.id);
-  if (st === 'available') return `<button class="btn small add" data-act="add" data-id="${p.id}">Thêm vào nhà</button>`;
-  if (st === 'mine') return `<button class="btn small ghost" data-act="go" data-view="home">Xem trong nhà</button>`;
-  return `<button class="btn small" disabled>${st === 'adopted' ? 'Đã có nhà' : 'Đã được đăng ký'}</button>`;
+  return petState(p.id) === 'adopted'
+    ? '<button class="btn small" disabled>Đã có nhà</button>'
+    : `<button class="btn small add" data-act="detail" data-id="${p.id}" data-adopt>Nhận nuôi bé</button>`;
 }
 function viewList(){
   const f = S.filters, list = filtered();
@@ -461,7 +407,7 @@ function viewList(){
     <div class="hero-text">
       <h1>Anh Chị tới, <em>thương bé cả đời!</em></h1>
       <p class="lead">TryYourPet là dự án phi lợi nhuận kết nối các trạm cứu hộ với cộng đồng nhằm tìm mái nhà phù hợp cho các bé chó, mèo trên khu vực TP.HCM thông qua hệ thống nhận nuôi.</p>
-      <div class="hero-cta"><button class="btn add" data-act="scrollpets">Xem ${waiting} bé đang chờ</button></div>
+      <div class="hero-cta"><button class="btn add" data-act="scroll" data-to="pets">Xem ${waiting} bé đang chờ</button><button class="btn ghost on-band" data-act="scroll" data-to="contact">Liên hệ nhận nuôi</button></div>
     </div>
     <div class="hero-art" aria-hidden="true">
       <img class="bone" src="assets/bone.png" alt="">
@@ -471,12 +417,11 @@ function viewList(){
       <img class="m2" src="assets/cat-walk.png" alt="">
     </div>
   </section>
-    <ol class="flow" aria-label="Các bước nhận nuôi">
-      <li><b>Chọn bé hợp với bạn</b>Xem hồ sơ, ảnh và video của từng bé</li>
-      <li><b>Thêm bé vào nhà</b>Bé được giữ cho bạn 7 ngày, tối đa 2 bé</li>
-      <li><b>Kể về bạn</b>Xác thực email và trả lời vài câu hỏi</li>
-      <li><b>Hẹn ngày đón bé</b>Đón bé tại trạm cứu hộ</li>
-    </ol>
+  <ol class="flow three" aria-label="Các bước nhận nuôi">
+    <li><b>Chọn bé hợp với bạn</b>Xem hồ sơ, ảnh và video của từng bé</li>
+    <li><b>Inbox hoặc gọi điện</b>Nhắn fanpage Purr Nature, Try Your Pet hoặc gọi ${CONTACT.phone.display}</li>
+    <li><b>Hẹn ngày đón bé</b>Trạm trao đổi với bạn và hẹn ngày đón</li>
+  </ol>
   <div class="filters" role="search" id="pets">
     <div class="field"><span>Loài</span>
       <div class="seg">${[['all','Tất cả'],['dog','Chó'],['cat','Mèo']].map(([k,l]) => `<button data-act="filter" data-k="species" data-v="${k}" aria-pressed="${f.species === k}">${l}</button>`).join('')}</div></div>
@@ -496,21 +441,25 @@ function viewList(){
         <div class="tags"><span class="tag ${p.neutered ? 'yes' : ''}">${p.neutered ? 'Đã triệt sản' : 'Chưa triệt sản'}</span><span class="tag yes">${p.vaccine.split(' (')[0].split(',')[0]}</span></div>
         <div class="actions"><button class="btn small ghost" data-act="detail" data-id="${p.id}">Xem hồ sơ</button>${cardActions(p)}</div>
       </div></article>`; }).join('')}</div>`
-  : `<div class="empty"><img class="mascot-empty" src="assets/dog-surprised.png" alt="">Chưa có bé nào khớp bộ lọc. <button class="btn small ghost" data-act="clearfilter">Xóa bộ lọc</button></div>`}`;
+  : `<div class="empty"><img class="mascot-empty" src="assets/dog-surprised.png" alt="">Chưa có bé nào khớp bộ lọc. <button class="btn small ghost" data-act="clearfilter">Xóa bộ lọc</button></div>`}
+  <section class="panel contact-panel" id="contact">
+    <h2>Liên hệ <em>nhận nuôi</em></h2>
+    ${contactBlock(null)}
+  </section>`;
 }
 
-let gallerySel = 0;
-function openDetail(id){ gallerySel = 0; renderDetail(id); }
-function renderDetail(id){
+let gallerySel = 0, openId = null;
+function renderDetail(id, focusContact){
   const p = pet(id), st = petState(id), m = document.getElementById('modal');
+  openId = id;
   const main = gallerySel < 3 ? art(p, gallerySel)
     : `<div class="video-big"><div><div class="play" aria-hidden="true">▶</div><b>Video ${esc(p.name)}, ${p.video}</b><p class="hint" style="color:inherit;opacity:.8">Bản chính thức phát video do trạm tải lên tại đây</p></div></div>`;
   m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Hồ sơ ${esc(p.name)}">
     <button class="x" data-act="close" aria-label="Đóng">×</button>
     <div class="gallery">
       <div class="gallery-main">${main}</div>
-      <div class="thumbs">${[0,1,2].map(i => `<button class="thumb" data-act="gal" data-id="${id}" data-i="${i}" aria-pressed="${gallerySel === i}" aria-label="Ảnh ${i+1}">${art(p,i)}</button>`).join('')}
-        <button class="thumb" data-act="gal" data-id="${id}" data-i="3" aria-pressed="${gallerySel === 3}" aria-label="Video"><div class="video-tile"><div><div class="play" aria-hidden="true">▶</div>${p.video}</div></div></button></div>
+      <div class="thumbs">${[0,1,2].map(i => `<button class="thumb" data-act="gal" data-i="${i}" aria-pressed="${gallerySel === i}" aria-label="Ảnh ${i+1}">${art(p,i)}</button>`).join('')}
+        <button class="thumb" data-act="gal" data-i="3" aria-pressed="${gallerySel === 3}" aria-label="Video"><div class="video-tile"><div><div class="play" aria-hidden="true">▶</div>${p.video}</div></div></button></div>
     </div>
     <div class="info">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2>${esc(p.name)}</h2><span class="pill ${st}">${STATE_LABEL[st]}</span></div>
@@ -520,316 +469,60 @@ function renderDetail(id){
         <dt>Tuổi</dt><dd>${ageText(p.age)}</dd>
         <dt>Cân nặng</dt><dd>${kg(p.weight)}</dd>
         <dt>Tiêm phòng</dt><dd>${esc(p.vaccine)}</dd>
-        <dt>Triệt sản</dt><dd>${p.neutered ? 'Đã triệt sản' : 'Chưa, trạm hỗ trợ khi đủ tuổi'}</dd>
+        <dt>Triệt sản</dt><dd>${p.neutered ? 'Đã triệt sản' : 'Chưa triệt sản'}</dd>
         <dt>Trạm chăm sóc</dt><dd>${STATIONS[p.station].name}, ${STATIONS[p.station].area}${fbLink(STATIONS[p.station])}</dd>
       </dl>
       <div><p class="section-label">Tính cách</p><div class="tags" style="margin-top:6px">${p.traits.map(t => `<span class="tag yes">${esc(t)}</span>`).join('')}</div></div>
       <div><p class="section-label">Lịch sử cứu hộ</p><p class="story" style="margin-top:6px">${esc(p.story)}</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${cardActions(p)}</div>
-      ${st === 'available' ? `<p class="hint">Khi thêm vào nhà, bé được giữ cho bạn ${HOLD_DAYS} ngày. Sau thời gian đó nếu chưa gửi đơn, bé tự động được nhả.</p>` : ''}
+      ${st === 'adopted' ? `<p class="hint">${esc(p.name)} đã có nhà. Bạn xem các bé khác đang chờ nhé.</p>` : `<div id="adopt">${contactBlock(p)}</div>`}
     </div></div>`;
   m.hidden = false;
-  m.querySelector('.x').focus();
-}
-
-function holdLeft(until){
-  const ms = until - Date.now(), d = Math.floor(ms / DAY), h = Math.floor((ms % DAY) / 3600e3);
-  return `Giữ chỗ đến ${fmtDT(until)}, còn ${d ? d+' ngày ' : ''}${h} giờ`;
-}
-function viewHome(){
-  const hs = myHolds();
-  app.innerHTML = `<div class="two">
-    <section class="panel">
-      <h2>Nhà của tôi</h2>
-      <p class="meta" style="margin:4px 0 8px">${hs.length}/${MAX_PETS} bé trong đơn này</p>
-      ${hs.length ? hs.map(h => { const p = pet(h.petId); return `<div class="row-pet">
-        <div class="mini">${art(p)}</div>
-        <div><h3>${esc(p.name)}</h3><p class="meta">${esc(p.breed)}, ${p.sex.toLowerCase()}, ${ageText(p.age)}</p><span class="hold">${holdLeft(h.until)}</span></div>
-        <button class="btn danger small" data-act="remove" data-id="${p.id}">Bỏ khỏi nhà</button></div>`; }).join('')
-      : `<div class="empty"><img class="mascot-empty" src="assets/cat-sleep.png" alt="">Nhà bạn đang trống. <button class="btn small" data-act="go" data-view="list">Xem các bé đang tìm nhà</button></div>`}
-    </section>
-    <aside class="panel">
-      <h3>Trước khi gửi đơn</h3>
-      <ul class="rules" style="margin-top:10px">
-        <li>Mỗi đơn nhận tối đa ${MAX_PETS} bé, các bé cần ở cùng một trạm.</li>
-        <li>Bé được giữ ${HOLD_DAYS} ngày kể từ lúc thêm vào nhà.</li>
-        <li>Bạn cần xác thực email. Người nhận nuôi phải đủ 18 tuổi.</li>
-        <li>Đơn trả lời đạt các câu sàng lọc sẽ được xác nhận ngay. Đơn khác được quản trị viên xem lại.</li>
-        <li>Không thể tự đổi hoặc hủy lịch. Không đến đúng hẹn thì đơn bị hủy và bé được nhả.</li>
-      </ul>
-      <button class="btn" style="width:100%;margin-top:16px" data-act="startcheckout" ${hs.length ? '' : 'disabled'}>Tiếp tục: xác nhận thông tin</button>
-    </aside></div>`;
-}
-
-const STEPS = ['Thông tin cá nhân','Câu hỏi sàng lọc','Lịch đón bé','Xem lại & cam kết'];
-let errors = {};
-function inp(id, label, type = 'text', extra = '', full = false){
-  const d = S.draft;
-  return `<label class="field ${full ? 'full' : ''}"><span>${label}</span><input id="d-${id}" type="${type}" data-f="${id}" value="${esc(d[id] || '')}" ${extra}><span class="err" id="e-${id}">${esc(errors[id] || '')}</span></label>`;
-}
-function cartHasCat(){ return myHolds().some(h => pet(h.petId).species === 'cat'); }
-function questions(){ return QUESTIONS.filter(q => !q.onlyCat || cartHasCat()); }
-
-function viewCheckout(){
-  const hs = myHolds();
-  if (!hs.length){ S.view = 'home'; return render(); }
-  const d = S.draft, step = S.step;
-  let body = '';
-  if (step === 1){
-    body = `<h2>Thông tin người nhận nuôi</h2><p class="meta" style="margin:4px 0 16px">Chỉ thu những thông tin cần cho việc giao nhận và đối chiếu khi bạn đến nhận bé.</p>
-    <div class="form-grid">
-      ${inp('name','Họ và tên','text','autocomplete="name"')}
-      ${inp('phone','Số điện thoại','tel','autocomplete="tel" inputmode="tel" placeholder="09xx xxx xxx"')}
-      ${inp('job','Nghề nghiệp')}
-      ${inp('address','Số nhà, đường, phường','text','autocomplete="street-address"', true)}
-      <label class="field full"><span>Quận / huyện</span><select id="d-district" data-f="district"><option value="">Chọn quận / huyện</option>${DISTRICTS.map(x => `<option ${d.district === x ? 'selected' : ''}>${x}</option>`).join('')}<option ${d.district === OUTSIDE ? 'selected' : ''}>${OUTSIDE}</option></select><span class="err">${esc(errors.district || '')}</span></label>
-      <label class="check full"><input type="checkbox" id="d-adult" data-adult ${d.adult ? 'checked' : ''}>Tôi xác nhận đã đủ 18 tuổi.<span class="err">${esc(errors.adult || '')}</span></label>
-      <div class="field full"><span>Email (để nhận xác nhận đơn)</span>
-        <div class="otp">
-          <label class="field"><input id="d-email" type="email" data-f="email" value="${esc(d.email || '')}" autocomplete="email" aria-label="Email" ${d.verified ? 'readonly' : ''}></label>
-          ${d.verified ? `<span class="verified">Đã xác thực</span> <button class="btn ghost small" data-act="unverify">Đổi email</button>` : `<button class="btn ghost" data-act="sendotp">${d.code ? 'Gửi lại mã' : 'Gửi mã xác thực'}</button>`}
-        </div>
-        ${!d.verified && d.code ? `<div class="otp" style="margin-top:8px"><label class="field"><span>Mã 6 số trong email</span><input id="d-otp" type="text" inputmode="numeric" maxlength="6" data-f="otp" value="${esc(d.otp || '')}"></label><button class="btn" data-act="verify">Xác thực</button></div>
-          <p class="demo-note" style="margin-top:8px">Bản demo không gửi email thật. Mã của bạn là <b>${d.code}</b>.</p>` : ''}
-        <span class="err">${esc(errors.email || '')}</span>
-      </div>
-    </div>`;
-  } else if (step === 2){
-    body = `<h2>Câu hỏi sàng lọc</h2><p class="meta" style="margin:4px 0 6px">Giúp trạm chắc rằng bé hợp với nhà bạn. Không có câu trả lời nào loại bạn ngay, một số câu sẽ chuyển đơn sang quản trị viên xem lại.</p>
-    ${questions().map(q => `<fieldset class="q"><legend>${q.t}</legend><div class="choices">${q.opts.map(([k,l]) => `<label class="choice"><input type="radio" name="q-${q.id}" data-q="${q.id}" value="${k}" ${d.answers[q.id] === k ? 'checked' : ''}>${l}</label>`).join('')}</div>
-      ${q.id === 'cannot' && d.answers.cannot === 'other' ? `<textarea id="q-cannot-text" data-qt="cannotText" placeholder="Bạn dự định thế nào?">${esc(d.answers.cannotText || '')}</textarea>` : ''}
-      <span class="err">${esc(errors['q-'+q.id] || '')}</span></fieldset>`).join('')}
-    <div class="q"><label class="field"><span class="qt" style="font-size:15px;color:var(--ink);letter-spacing:0">Khi bạn đi vắng hoặc về quê, ai sẽ chăm bé?</span><textarea id="q-care" data-qt="care" placeholder="Ví dụ: gửi bố mẹ ở cùng quận, hoặc gửi khách sạn thú cưng">${esc(d.answers.care || '')}</textarea><span class="err">${esc(errors['q-care'] || '')}</span></label></div>`;
-  } else if (step === 3){
-    d.method = 'station';
-    const days = nextOpenDays(S.settings, Date.now(), 6);
-    const slots = slotsFor();
-    const stations = [...new Set(hs.map(h => pet(h.petId).station))];
-    body = `<h2>Chọn lịch đón bé tại trạm</h2>
-    <div class="callout info" style="margin-top:12px">Đón bé tại: ${stations.map(s => '<b>'+STATIONS[s].name+'</b>, '+STATIONS[s].addr).join('; ')}. Nhớ mang theo giấy tờ tùy thân có ảnh.</div>
-    <div class="q"><span class="qt">Ngày nhận</span><div class="days">${days.map(k => { const dt = dparse(k); return `<button class="day" data-act="pickday" data-k="${k}" aria-pressed="${d.date === k}">${WEEKDAYS[dt.getDay()]}<b>${pad(dt.getDate())}/${pad(dt.getMonth()+1)}</b></button>`; }).join('')}</div>
-      <p class="hint">Trạm nhận khách ${S.settings.openDays.map(x => WEEKDAYS[x]).join(', ')}. Bạn chọn được lịch trong ${days.length} ngày mở cửa tới.</p></div>
-    <div class="q"><span class="qt">Khung giờ</span>
-      ${d.date ? `<div class="slots">${slots.map(s => { const left = s.cap - booked(d.method, d.date, s.id); return `<button class="slot" data-act="pickslot" data-k="${s.id}" aria-pressed="${d.slot === s.id}" ${left <= 0 ? 'disabled' : ''}><b>${s.label}</b><small>${left > 0 ? 'Còn '+left+'/'+s.cap+' chỗ' : 'Đã kín'}</small></button>`; }).join('')}</div>` : '<p class="hint">Chọn ngày trước để xem khung giờ còn trống.</p>'}
-      <span class="err">${esc(errors.slot || '')}</span></div>
-    <div class="callout warn">Lịch đã chọn không thể tự đổi hoặc hủy. Nếu bạn không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.</div>`;
-  } else {
-    const flags = evaluate();
-    const slot = slotById(d.slot);
-    body = `<h2>Xem lại và cam kết</h2>
-    <dl class="review-list" style="margin-top:12px">
-      <dt>Họ tên</dt><dd>${esc(d.name)}</dd><dt>Điện thoại</dt><dd>${esc(d.phone)}</dd><dt>Email</dt><dd>${esc(d.email)}</dd>
-      <dt>Địa chỉ</dt><dd>${esc(d.address)}, ${esc(d.district)}</dd><dt>Nghề nghiệp</dt><dd>${esc(d.job)}</dd>
-      <dt>Nơi đón bé</dt><dd>Tại trạm cứu hộ</dd><dt>Lịch nhận</dt><dd>${fmtDay(d.date)}, ${slot ? slot.label : ''}</dd>
-    </dl>
-    <div class="q" style="margin-top:8px"><span class="qt">Cam kết của người nhận nuôi</span>
-      ${COMMITS.map((c,i) => `<label class="check"><input type="checkbox" id="c-${i}" data-c="${i}" ${d.commits[i] ? 'checked' : ''}>${c}</label>`).join('')}
-      <span class="err">${esc(errors.commits || '')}</span></div>
-    ${flags.length ? `<div class="callout warn"><b>Đơn sẽ được quản trị viên xem lại</b> vì: ${flags.map(esc).join('; ')}. Bé vẫn được giữ cho bạn đến hết lịch hẹn, bạn sẽ nhận kết quả qua email.</div>`
-      : `<div class="callout ok"><b>Đơn của bạn đạt các tiêu chí.</b> Đơn sẽ được xác nhận ngay khi gửi.</div>`}`;
-  }
-  app.innerHTML = `<ol class="stepper">${STEPS.map((s,i) => `<li ${i+1 === step ? 'aria-current="step"' : ''} class="${i+1 < step ? 'done' : ''}">${i+1}. ${s}</li>`).join('')}</ol>
-  <div class="two">
-    <section class="panel">${body}
-      <div class="nav-steps"><button class="btn ghost" data-act="back">${step === 1 ? 'Quay lại nhà của tôi' : 'Quay lại'}</button>
-      <button class="btn" data-act="next">${step === 4 ? 'Gửi đơn nhận nuôi' : 'Tiếp tục'}</button></div>
-    </section>
-    <aside class="panel summary"><h3>Các bé trong đơn</h3>
-      ${hs.map(h => { const p = pet(h.petId); return `<div class="row-pet"><div class="mini">${art(p)}</div><div><b>${esc(p.name)}</b><p class="meta">${esc(p.breed)}, ${STATIONS[p.station].name}</p><span class="hold">Giữ đến ${fmtDT(h.until)}</span></div></div>`; }).join('')}
-    </aside></div>`;
-}
-
-function validate(step){
-  const d = S.draft; errors = {};
-  if (step === 1){
-    if (!d.name || d.name.trim().split(/\s+/).length < 2) errors.name = 'Nhập đầy đủ họ và tên.';
-    if (!/^0(3|5|7|8|9)\d{8}$/.test((d.phone || '').replace(/[\s.]/g,''))) errors.phone = 'Số điện thoại gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09.';
-    if (!d.job || !d.job.trim()) errors.job = 'Nhập nghề nghiệp.';
-    if (!d.adult) errors.adult = 'Người nhận nuôi cần đủ 18 tuổi.';
-    if (!d.address || !d.address.trim()) errors.address = 'Nhập địa chỉ.';
-    if (!d.district) errors.district = 'Chọn quận / huyện.';
-    if (!d.verified) errors.email = 'Xác thực email trước khi tiếp tục.';
-  } else if (step === 2){
-    questions().forEach(q => { if (!d.answers[q.id]) errors['q-'+q.id] = 'Chọn một câu trả lời.'; });
-    if (d.answers.cannot === 'other' && !(d.answers.cannotText || '').trim()) errors['q-cannot'] = 'Mô tả phương án của bạn.';
-    if (!(d.answers.care || '').trim()) errors['q-care'] = 'Cho trạm biết ai sẽ chăm bé khi bạn vắng nhà.';
-  } else if (step === 3){
-    if (!d.date || !d.slot) errors.slot = 'Chọn ngày và khung giờ đón bé.';
-    else if (booked(d.method, d.date, d.slot) >= slotById(d.slot).cap) errors.slot = 'Khung giờ này vừa kín, chọn khung khác.';
-  } else {
-    if (COMMITS.some((_,i) => !d.commits[i])) errors.commits = 'Cần đồng ý tất cả cam kết để gửi đơn.';
-  }
-  return !Object.keys(errors).length;
-}
-function evaluate(){
-  const a = S.draft.answers, flags = [];
-  questions().forEach(q => { if (q.flag && q.flag[a[q.id]]) flags.push(q.flag[a[q.id]]); });
-  return flags;
-}
-function submitOrder(){
-  const d = S.draft, flags = evaluate(), slot = slotById(d.slot), now = new Date();
-  const id = 'TYP-'+pad(now.getMonth()+1)+pad(now.getDate())+'-'+String(Math.floor(Math.random()*9000)+1000);
-  const o = { id, pets:myHolds().map(h => h.petId), status:flags.length ? 'review' : 'confirmed', createdAt:Date.now(), method:d.method, date:d.date, slot:d.slot,
-    apptEnd:dparse(d.date).getTime() + (slot.end + 2) * 3600e3, flags,
-    customer:{ name:d.name, phone:d.phone, email:d.email, address:d.address, district:d.district, job:d.job }, answers:{...d.answers} };
-  S.orders.unshift(o);
-  S.holds.forEach(h => { if (h.owner === 'me' && !h.orderId){ h.orderId = id; h.until = o.apptEnd; } });
-  mail(d.email, o.status === 'confirmed' ? 'Đơn '+id+' đã được xác nhận, lịch nhận '+fmtDay(d.date)+' '+slot.label : 'Đã nhận đơn '+id+', đang chờ trạm xem lại');
-  mail('quanly@tryyourpet.vn', (o.status === 'confirmed' ? 'Đơn mới tự xác nhận ' : 'Đơn mới cần duyệt thủ công ')+id);
-  S.lastOrder = id;
-  S.draft = { answers:{}, commits:{}, method:'station', name:d.name, phone:d.phone, email:d.email, verified:d.verified, address:d.address, district:d.district, job:d.job, adult:d.adult };
-  S.step = 1; S.view = 'done';
-}
-
-function viewDone(){
-  const o = S.orders.find(x => x.id === S.lastOrder);
-  if (!o){ S.view = 'list'; return render(); }
-  const slot = slotById(o.slot), names = o.pets.map(id => pet(id).name).join(' và ');
-  const where =[...new Set(o.pets.map(id => STATIONS[pet(id).station].name+', '+STATIONS[pet(id).station].addr))].join('; ');
-  app.innerHTML = `<section class="done panel">
-    <img class="mascot-empty" src="assets/${o.status === 'confirmed' ? 'dog-spin' : 'cat-sit'}.png" alt="">
-    <span class="pill ${o.status}" style="justify-self:center">${ORDER_LABEL[o.status]}</span>
-    <h1>${o.status === 'confirmed' ? 'Hẹn gặp bạn ngày đón <em>'+esc(names)+'</em>' : 'Đã nhận <em>đơn của bạn</em>'}</h1>
-    <p>Mã đơn <span class="code">${o.id}</span></p>
-    <dl class="review-list" style="text-align:left;justify-self:center">
-      <dt>Lịch nhận</dt><dd>${fmtDay(o.date)}, ${slot.label}</dd><dt>Nơi đón bé</dt><dd>${esc(where)}</dd><dt>Mang theo</dt><dd>Giấy tờ tùy thân có ảnh${o.pets.some(id => pet(id).species === 'cat') ? ', lồng hoặc túi vận chuyển cho mèo' : ', dây dắt cho chó'}</dd>
-    </dl>
-    ${o.status === 'review' ? `<div class="callout warn">Quản trị viên sẽ xem lại đơn và trả lời qua email ${esc(o.customer.email)}. Bé vẫn được giữ cho bạn đến hết lịch hẹn.</div>` : `<div class="callout ok">Email xác nhận đã được gửi tới ${esc(o.customer.email)}.</div>`}
-    <p class="hint">Lịch không thể tự đổi hoặc hủy. Nếu không có mặt đúng hẹn, đơn sẽ bị hủy và bé được nhả cho người khác.</p>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" data-act="go" data-view="list">Xem thêm các bé</button>${IS_ADMIN ? '<button class="btn ghost" data-act="go" data-view="admin">Xem đơn trong trang quản trị</button>' : ''}</div>
-  </section>`;
+  if (focusContact) m.querySelector('#adopt')?.scrollIntoView({ block:'nearest' });
+  else m.querySelector('.x').focus();
 }
 
 function viewAdmin(){
-  const now = Date.now(), week = nextOpenDays(S.settings, now - DAY, 7).filter(k => dparse(k).getTime() < now + 8*DAY);
-  const active = S.orders.filter(o => o.status === 'confirmed' || o.status === 'review');
-  const upcoming = S.orders.filter(o => o.status === 'confirmed' && o.apptEnd > now && o.apptEnd < now + 8*DAY);
-  const adoptedCount = Object.keys(S.adopted).length;
-  const tab = S.adminTab;
-  const orders = S.orders.filter(o => tab === 'all' || o.status === tab);
-  const allDays = []; for (let i = 0; i < 7; i++) allDays.push(dkey(new Date(startOfDay(now).getTime() + i*DAY)));
-  const expiring = S.holds.filter(h => !h.orderId).sort((a,b) => a.until - b.until);
+  const adopted = PETS.filter(p => petState(p.id) === 'adopted').length;
   app.innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap">
-    <div><h1>Quản trị</h1><p class="meta">Dành cho 6 quản trị viên và các trạm. Bản thật cần đăng nhập và phân quyền theo trạm.</p></div>
-    <span class="demo-note">Các đơn có nhãn "ví dụ" là dữ liệu mẫu</span>
+    <div><h1>Quản trị</h1><p class="meta">Khách nhận nuôi qua inbox fanpage hoặc điện thoại. Ở đây quản trị viên cập nhật bé nào đã có nhà.</p></div>
+    <span class="note">Bản demo, thay đổi chỉ lưu trên trình duyệt này</span>
   </div>
-  <div class="kpis">
-    <div class="kpi ${S.orders.some(o => o.status === 'review') ? 'attn' : ''}"><b>${S.orders.filter(o => o.status === 'review').length}</b><span>Đơn chờ duyệt</span></div>
-    <div class="kpi"><b>${upcoming.length}</b><span>Lịch nhận 7 ngày tới</span></div>
-    <div class="kpi"><b>${S.holds.length}</b><span>Bé đang được giữ chỗ</span></div>
-    <div class="kpi"><b>${adoptedCount}</b><span>Bé đã có nhà / ${PETS.length} bé</span></div>
+  <div class="kpis two-kpis">
+    <div class="kpi"><b>${PETS.length - adopted}</b><span>Bé đang tìm nhà</span></div>
+    <div class="kpi"><b>${adopted}</b><span>Bé đã có nhà</span></div>
   </div>
-  <section class="panel"><h2>Lịch nhận 7 ngày tới</h2><div class="scroll"><table class="cal"><thead><tr><th>Khung giờ</th>${allDays.map(k => { const d = dparse(k); return `<th>${WEEKDAYS[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)}</th>`; }).join('')}</tr></thead><tbody>
-    ${[['station','Tại trạm']].map(([m,ml]) => slotsFor(m).map(s => `<tr><th>${ml}<br>${s.label}</th>${allDays.map(k => {
-      if (!S.settings.openDays.includes(dparse(k).getDay())) return `<td class="closed">Nghỉ</td>`;
-      const os = active.filter(o => o.method === m && o.date === k && o.slot === s.id);
-      return `<td>${os.map(o => `<span class="chip ${o.status}">${esc(o.customer.name.split(' ').pop())} · ${o.pets.map(id => esc(pet(id).name)).join(', ')}</span>`).join('')}<span class="chip free">${s.cap - os.length > 0 ? 'Trống '+(s.cap - os.length)+'/'+s.cap : 'Kín'}</span></td>`;
-    }).join('')}</tr>`).join('')).join('')}
-  </tbody></table></div></section>
-
-  <section class="panel"><h2>Đơn nhận nuôi</h2>
-    <div class="tabs seg" style="display:inline-flex">${[['all','Tất cả'],['review','Chờ duyệt'],['confirmed','Đã xác nhận'],['completed','Đã nhận bé'],['cancelled','Đã hủy']].map(([k,l]) => `<button data-act="admintab" data-k="${k}" aria-pressed="${tab === k}">${l}</button>`).join('')}</div>
-    <div class="scroll"><table><thead><tr><th>Mã đơn</th><th>Người nhận</th><th>Bé</th><th>Lịch</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-    ${orders.length ? orders.map(o => { const s = slotById(o.slot); return `<tr>
-      <td><b>${o.id}</b>${o.example ? '<br><small class="meta">ví dụ</small>' : ''}</td>
-      <td>${esc(o.customer.name)}<br><small class="meta">${esc(o.customer.phone)} · ${esc(o.customer.district)}</small></td>
-      <td>${o.pets.map(id => esc(pet(id).name)).join(', ')}</td>
-      <td>${fmtDay(o.date)}<br><small class="meta">${s ? s.label : ''} · Tại trạm</small></td>
-      <td><span class="pill ${o.status}">${ORDER_LABEL[o.status]}</span>${o.flags && o.flags.length && o.status === 'review' ? `<br><small class="meta">${o.flags.map(esc).join('; ')}</small>` : ''}${o.cancelReason ? `<br><small class="meta">${esc(o.cancelReason)}</small>` : ''}</td>
-      <td><div class="acts">${o.status === 'review' ? `<button class="btn small" data-act="approve" data-id="${o.id}">Duyệt</button><button class="btn small danger" data-act="reject" data-id="${o.id}">Từ chối</button>` : ''}
-        ${o.status === 'confirmed' ? `<button class="btn small" data-act="complete" data-id="${o.id}">Đã giao bé</button><button class="btn small danger" data-act="noshow" data-id="${o.id}">Vắng mặt</button>` : ''}</div></td></tr>`; }).join('')
-      : `<tr><td colspan="6" class="meta">Không có đơn ở trạng thái này.</td></tr>`}
-    </tbody></table></div></section>
-
-  <div class="admin-grid">
-    <section class="panel"><h2>Giữ chỗ sắp hết hạn</h2>
-      ${expiring.length ? expiring.map(h => `<div class="mail"><b>${esc(pet(h.petId).name)}</b> · ${h.owner === 'me' ? 'khách đang xem demo' : 'khách khác'}<br><small>${holdLeft(h.until)}</small></div>`).join('') : '<p class="meta">Không có bé nào đang được giữ mà chưa gửi đơn.</p>'}
-      <p class="hint" style="margin-top:8px">Hệ thống tự nhả bé khi hết ${HOLD_DAYS} ngày, và gửi email nhắc khách trước 24 giờ.</p>
-    </section>
-    <section class="panel"><h2>Cài đặt lịch nhận</h2>
-      <p class="section-label">Ngày mở cửa</p>
-      <div class="daytoggles" style="margin:6px 0 12px">${[1,2,3,4,5,6,0].map(x => `<label class="choice"><input type="checkbox" id="od-${x}" data-openday="${x}" ${S.settings.openDays.includes(x) ? 'checked' : ''}>${WEEKDAYS[x]}</label>`).join('')}</div>
-      <p class="section-label">Số khách tối đa mỗi khung</p>
-      ${[['station','Tại trạm']].map(([m,ml]) => slotsFor(m).map(s => `<label class="cap-row"><input type="number" id="cap-${s.id}" min="0" max="20" data-cap="${s.id}" value="${s.cap}"><span>${ml} · ${s.label}</span></label>`).join('')).join('')}
-    </section>
-    <section class="panel"><h2>Tình trạng các bé</h2><div class="scroll"><table><thead><tr><th>Bé</th><th>Trạm</th><th>Trạng thái</th></tr></thead><tbody>
-      ${PETS.map(p => { const st = petState(p.id); return `<tr><td>${esc(p.name)} <small class="meta">${species(p.species)}</small></td><td>${STATIONS[p.station].name}</td><td><span class="pill ${st}">${STATE_LABEL[st]}</span></td></tr>`; }).join('')}
-    </tbody></table></div></section>
-    <section class="panel"><h2>Email đã gửi</h2><p class="hint" style="margin-bottom:6px">Mô phỏng, bản thật gửi qua dịch vụ email.</p>
-      ${S.emails.slice(0,10).map(e => `<div class="mail"><b>${esc(e.subject)}</b><br><small>${esc(e.to)} · ${fmtDT(e.at)}</small></div>`).join('')}
-    </section>
-  </div>`;
+  <section class="panel"><h2>Các bé</h2><div class="scroll"><table><thead><tr><th>Bé</th><th>Trạm</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+    ${PETS.map(p => { const st = petState(p.id); return `<tr><td><b>${esc(p.name)}</b><br><small class="meta">${species(p.species)}, ${esc(p.breed)}</small></td><td>${STATIONS[p.station].name}</td>
+      <td><span class="pill ${st}">${STATE_LABEL[st]}</span></td>
+      <td><button class="btn small ${st === 'adopted' ? 'ghost' : ''}" data-act="toggleadopt" data-id="${p.id}">${st === 'adopted' ? 'Bỏ đánh dấu' : 'Đánh dấu đã có nhà'}</button></td></tr>`; }).join('')}
+  </tbody></table></div></section>`;
 }
 
 /* ---------- events ---------- */
 let toastT;
 function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); }
-function closeModal(){ const m = document.getElementById('modal'); m.hidden = true; m.innerHTML = ''; }
-function addPet(id){
-  if (petState(id) !== 'available') return toast('Bé này hiện không còn trống.');
-  if (myHolds().length >= MAX_PETS) return toast('Mỗi đơn nhận tối đa '+MAX_PETS+' bé. Bỏ bớt một bé trong nhà trước.');
-  const first = myHolds()[0];
-  if (first && pet(first.petId).station !== pet(id).station) return toast('Các bé trong một đơn cần ở cùng một trạm để bạn đón một lần. '+pet(first.petId).name+' đang ở '+STATIONS[pet(first.petId).station].name+'.');
-  S.holds.push({ petId:id, owner:'me', until:Date.now() + HOLD_DAYS*DAY });
-  toast('Đã thêm '+pet(id).name+' vào nhà. Bé được giữ cho bạn '+HOLD_DAYS+' ngày.');
-}
-function orderAct(id, fn){ const o = S.orders.find(x => x.id === id); if (o) fn(o); }
+function closeModal(){ const m = document.getElementById('modal'); m.hidden = true; m.innerHTML = ''; openId = null; }
 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el){ if (e.target.id === 'modal') closeModal(); return; }
   const a = el.dataset.act, id = el.dataset.id;
   if (a === 'go'){ S.view = el.dataset.view; closeModal(); window.scrollTo(0,0); }
+  else if (a === 'contact'){ if (S.view !== 'list'){ S.view = 'list'; render(); } document.getElementById('contact').scrollIntoView({ behavior:'smooth' }); return; }
+  else if (a === 'scroll'){ document.getElementById(el.dataset.to)?.scrollIntoView({ behavior:'smooth' }); return; }
   else if (a === 'filter'){ S.filters[el.dataset.k] = el.dataset.v; if (el.dataset.k === 'species') S.filters.breed = 'all'; }
   else if (a === 'clearfilter'){ S.filters = { species:'all', breed:'all', sex:'all', weight:'all' }; }
-  else if (a === 'detail'){ openDetail(id); return; }
-  else if (a === 'scrollpets'){ document.getElementById('pets').scrollIntoView({ behavior:'smooth' }); return; }
-  else if (a === 'gal'){ gallerySel = +el.dataset.i; renderDetail(id); return; }
+  else if (a === 'detail'){ gallerySel = 0; renderDetail(id, 'adopt' in el.dataset); return; }
+  else if (a === 'gal'){ gallerySel = +el.dataset.i; renderDetail(openId, false); return; }
   else if (a === 'close'){ closeModal(); return; }
-  else if (a === 'add'){ addPet(id); const m = document.getElementById('modal'); if (!m.hidden){ render(); renderDetail(id); return; } }
-  else if (a === 'remove'){ S.holds = S.holds.filter(h => !(h.petId === id && h.owner === 'me' && !h.orderId)); toast('Đã bỏ '+pet(id).name+' khỏi nhà, bé được nhả cho người khác.'); }
-  else if (a === 'startcheckout'){ S.view = 'checkout'; S.step = 1; errors = {}; window.scrollTo(0,0); }
-  else if (a === 'sendotp'){
-    const em = S.draft.email || '';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ errors.email = 'Email chưa đúng định dạng.'; }
-    else { S.draft.code = String(Math.floor(100000 + Math.random()*900000)); S.draft.otp = ''; errors.email = ''; toast('Đã gửi mã xác thực tới '+em); }
-  }
-  else if (a === 'verify'){
-    if (S.draft.otp === S.draft.code){ S.draft.verified = true; delete S.draft.code; errors.email = ''; toast('Email đã được xác thực.'); }
-    else errors.email = 'Mã chưa đúng. Kiểm tra lại email hoặc gửi lại mã.';
-  }
-  else if (a === 'unverify'){ S.draft.verified = false; }
-  else if (a === 'pickday'){ S.draft.date = el.dataset.k; S.draft.slot = null; }
-  else if (a === 'pickslot'){ S.draft.slot = el.dataset.k; errors.slot = ''; }
-  else if (a === 'back'){ errors = {}; if (S.step === 1) S.view = 'home'; else S.step--; window.scrollTo(0,0); }
-  else if (a === 'next'){
-    if (!validate(S.step)) { render(); const f = app.querySelector('.err:not(:empty)'); if (f) f.closest('.field,.q,fieldset')?.scrollIntoView({ block:'center' }); return; }
-    if (S.step < 4) S.step++; else submitOrder();
-    window.scrollTo(0,0);
-  }
-  else if (a === 'admintab'){ S.adminTab = el.dataset.k; }
-  else if (a === 'approve') orderAct(id, o => { o.status = 'confirmed'; mail(o.customer.email, 'Đơn '+o.id+' đã được duyệt'); toast('Đã duyệt đơn '+o.id); });
-  else if (a === 'reject') orderAct(id, o => { o.status = 'cancelled'; o.cancelReason = 'Không đạt sàng lọc'; releaseOrder(o); mail(o.customer.email, 'Đơn '+o.id+' chưa được duyệt'); toast('Đã từ chối đơn, bé được nhả.'); });
-  else if (a === 'complete') orderAct(id, o => { o.status = 'completed'; o.pets.forEach(p => S.adopted[p] = Date.now()); releaseOrder(o); mail(o.customer.email, 'Cảm ơn bạn đã đón '+o.pets.map(p => pet(p).name).join(', ')+' về nhà'); toast('Đã ghi nhận giao bé thành công.'); });
-  else if (a === 'noshow') orderAct(id, o => { o.status = 'cancelled'; o.cancelReason = 'Không đến đúng hẹn'; releaseOrder(o); mail(o.customer.email, 'Đơn '+o.id+' đã bị hủy do không đến đúng hẹn'); toast('Đã hủy đơn và nhả bé.'); });
-  else if (a === 'reset'){ S = seed(); errors = {}; closeModal(); toast('Đã đặt lại dữ liệu demo.'); }
+  else if (a === 'toggleadopt'){ if (S.adopted[id]) delete S.adopted[id]; else S.adopted[id] = true; toast(pet(id).name + (S.adopted[id] ? ' đã được đánh dấu có nhà.' : ' đang tìm nhà trở lại.')); }
+  else if (a === 'reset'){ S = seed(); closeModal(); toast('Đã đặt lại dữ liệu demo.'); }
   render();
-});
-document.addEventListener('input', e => {
-  const t = e.target;
-  if (t.dataset.f){ S.draft[t.dataset.f] = t.value; if (t.dataset.f === 'district') render(); else save(); }
-  else if (t.dataset.qt){ S.draft.answers[t.dataset.qt] = t.value; save(); }
 });
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.filter){ S.filters[t.dataset.filter] = t.value; render(); }
-  else if (t.dataset.q){ S.draft.answers[t.dataset.q] = t.value; render(); }
-  else if (t.dataset.method){ S.draft.method = t.dataset.method; S.draft.slot = null; render(); }
-  else if (t.dataset.c !== undefined){ S.draft.commits[t.dataset.c] = t.checked; save(); }
-  else if (t.dataset.adult !== undefined){ S.draft.adult = t.checked; errors.adult = ''; save(); }
-  else if (t.dataset.openday !== undefined){ const x = +t.dataset.openday; S.settings.openDays = t.checked ? [...S.settings.openDays, x] : S.settings.openDays.filter(d => d !== x); render(); }
-  else if (t.dataset.cap){ const s = slotById(t.dataset.cap); s.cap = Math.max(0, Math.min(20, +t.value || 0)); render(); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('modal').hidden) closeModal(); });
 render();
