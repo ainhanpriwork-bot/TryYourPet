@@ -1,14 +1,5 @@
 // Small helpers shared by the customer page and the admin page.
-import { WEEKDAYS } from './rules.js';
-
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-export const pad = n => String(n).padStart(2, '0');
-export const fmtDT = t => new Date(t).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', timeZone:'Asia/Ho_Chi_Minh' });
-export const fmtDay = key => {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('vi-VN', { weekday:'long', day:'2-digit', month:'2-digit', timeZone:'UTC' });
-};
-export const dayChip = key => { const [, m, d] = key.split('-'); return { wd: WEEKDAYS[new Date(key + 'T00:00:00Z').getUTCDay()], dm: d + '/' + m }; };
 export const ageText = m => m < 12 ? m + ' tháng' : (m % 12 ? (m / 12).toFixed(1).replace('.', ',') + ' tuổi' : (m / 12) + ' tuổi');
 export const kg = w => String(w).replace('.', ',') + ' kg';
 export const species = s => s === 'cat' ? 'Mèo' : 'Chó';
@@ -66,8 +57,3 @@ export async function busy(btn, fn) {
   if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
   try { return await fn(); } finally { if (btn && btn.isConnected) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
 }
-
-export const store = {
-  get(k, fallback) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: keep going without saving */ } }
-};

@@ -1,16 +1,15 @@
 // Admin page: sign in with Supabase Auth (email + password); every action goes through /api/admin/*,
 // where the server checks the login and the admins list again.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { QUESTIONS, WEEKDAYS, PHOTO_TYPES, FILE_MAX } from './rules.js';
-import { esc, fmtDT, fmtDay, dayChip, ageText, kg, species, toast, api, fileToPayload, busy } from './ui.js';
+import { PHOTO_TYPES, FILE_MAX } from './rules.js';
+import { esc, ageText, kg, species, toast, api, fileToPayload, busy } from './ui.js';
 
 const app = document.getElementById('app');
-const ORDER_LABEL = { review:'Chờ duyệt', confirmed:'Đã xác nhận', completed:'Đã nhận bé', cancelled:'Đã hủy' };
-const STATE_LABEL = { available:'Đang tìm nhà', held:'Đã có người đăng ký', adopted:'Đã có nhà', mine:'Đang giữ' };
-const TABS = [['home','Tổng quan'],['orders','Đơn nhận nuôi'],['pets','Thú cưng'],['stations','Trạm'],['settings','Cài đặt lịch'],['emails','Email']];
+const STATE_LABEL = { available:'Đang tìm nhà', adopted:'Đã có nhà' };
+const TABS = [['pets','Thú cưng'],['stations','Trạm']];
 
 let sb = null, me = null, D = null, recovery = false;
-const UI = { tab: 'home', orderFilter: 'review', open: {}, petForm: null, petErr: {}, stationErr: {} };
+const UI = { tab: 'pets', petForm: null, petErr: {}, stationErr: {} };
 
 async function token() { const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : null; }
 const call = async (method, path, body) => api(method, path, body, await token());
@@ -75,65 +74,12 @@ async function refresh() {
 }
 
 /* ---------- views ---------- */
-const petName = id => (D.pets.find(p => p.id === id) || { name: '(đã xóa)' }).name;
 const station = id => D.stations.find(s => s.id === id) || { name: id };
-const slotLabel = id => (D.slots.find(s => s.id === id) || { label: id }).label;
-function targetLabel(t) {
-  if (!t || t === 'all') return 'Quỹ chung';
-  const [k, v] = t.split(':');
-  return k === 'station' ? station(v).name : 'Bé ' + petName(v);
-}
-
 function render() {
   if (!D) { app.innerHTML = '<p class="loading">Đang tải…</p>'; return; }
-  const reviewN = D.orders.filter(o => o.status === 'review').length;
   app.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap"><h1>Quản trị</h1><button class="btn ghost small" data-act="refresh">Tải lại dữ liệu</button></div>
-    <nav class="admin-tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-k="${k}" aria-pressed="${UI.tab === k}">${l}${k === 'orders' && reviewN ? ' (' + reviewN + ')' : ''}</button>`).join('')}</nav>
-    <div id="view">${({ home: vHome, orders: vOrders, pets: vPets, stations: vStations, settings: vSettings, emails: vEmails })[UI.tab]()}</div>`;
-}
-
-function vHome() {
-  const upcoming = D.orders.filter(o => o.status === 'confirmed' && D.days.includes(o.appt_date));
-  const active = D.orders.filter(o => o.status === 'confirmed' || o.status === 'review');
-  const adopted = D.pets.filter(p => p.state === 'adopted').length;
-  return `<div class="kpis">
-      <div class="kpi ${active.some(o => o.status === 'review') ? 'attn' : ''}"><b>${D.orders.filter(o => o.status === 'review').length}</b><span>Đơn chờ duyệt</span></div>
-      <div class="kpi"><b>${upcoming.length}</b><span>Lịch đón 7 ngày tới</span></div>
-      <div class="kpi"><b>${D.holds.length}</b><span>Bé đang trong giỏ của khách</span></div>
-      <div class="kpi"><b>${adopted}</b><span>Bé đã có nhà / ${D.pets.length} bé</span></div>
-    </div>
-    <section class="panel"><h2>Lịch đón 7 ngày tới</h2><div class="scroll"><table class="cal"><thead><tr><th>Khung giờ</th>${D.days.map(k => { const c = dayChip(k); return `<th>${c.wd} ${c.dm}</th>`; }).join('')}</tr></thead><tbody>
-      ${D.slots.map(s => `<tr><th>${esc(s.label)}</th>${D.days.map(k => {
-        if (!D.settings.openDays.includes(new Date(k + 'T00:00:00Z').getUTCDay())) return '<td class="closed">Nghỉ</td>';
-        const os = active.filter(o => o.appt_date === k && o.slot_id === s.id);
-        return `<td>${os.map(o => `<span class="chip ${o.status}">${esc(o.name.split(' ').pop())}, ${o.pet_ids.map(petName).map(esc).join(', ')}</span>`).join('')}<span class="chip free">${s.capacity - os.length > 0 ? 'Trống ' + (s.capacity - os.length) + '/' + s.capacity : 'Kín'}</span></td>`;
-      }).join('')}</tr>`).join('')}
-    </tbody></table></div></section>`;
-}
-
-function answersHtml(o) {
-  const a = o.answers || {};
-  return QUESTIONS.filter(q => a[q.id]).map(q => `<div><b>${q.t}</b> ${esc((q.opts.find(([k]) => k === a[q.id]) || [, a[q.id]])[1])}</div>`).join('')
-    + (a.cannotText ? `<div><b>Phương án khác:</b> ${esc(a.cannotText)}</div>` : '') + (a.care ? `<div><b>Ai chăm bé khi vắng nhà:</b> ${esc(a.care)}</div>` : '');
-}
-function vOrders() {
-  const f = UI.orderFilter, list = D.orders.filter(o => f === 'all' || o.status === f);
-  return `<section class="panel"><h2>Đơn nhận nuôi</h2>
-    <div class="tabs seg" style="display:inline-flex">${[['review','Chờ duyệt'],['confirmed','Đã xác nhận'],['completed','Đã nhận bé'],['cancelled','Đã hủy'],['all','Tất cả']].map(([k, l]) => `<button data-act="ofilter" data-k="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-    <div class="scroll"><table><thead><tr><th>Mã đơn</th><th>Người nhận</th><th>Bé</th><th>Lịch đón</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-    ${list.length ? list.map(o => `<tr>
-      <td><b>${esc(o.code)}</b><br><small class="meta">${fmtDT(o.created_at)}</small></td>
-      <td>${esc(o.name)}<br><small class="meta">${esc(o.phone)}<br>${esc(o.email)}</small></td>
-      <td>${o.pet_ids.map(petName).map(esc).join(', ')}<br><small class="meta">${esc(station(o.station_id).name)}</small></td>
-      <td>${fmtDay(o.appt_date)}<br><small class="meta">${esc(slotLabel(o.slot_id))}</small></td>
-      <td><span class="pill ${o.status}">${ORDER_LABEL[o.status]}</span>${o.status === 'review' && o.flags.length ? `<br><small class="meta">${o.flags.map(esc).join('; ')}</small>` : ''}${o.cancel_reason ? `<br><small class="meta">${esc(o.cancel_reason)}</small>` : ''}${o.decided_by ? `<br><small class="meta">Xử lý: ${esc(o.decided_by)}</small>` : ''}</td>
-      <td><div class="acts">
-        ${o.status === 'review' ? `<button class="btn small" data-act="order" data-a="approve" data-id="${o.id}">Duyệt</button><button class="btn small danger" data-act="order" data-a="reject" data-id="${o.id}">Từ chối</button>` : ''}
-        ${o.status === 'confirmed' ? `<button class="btn small" data-act="order" data-a="complete" data-id="${o.id}">Đã giao bé</button><button class="btn small danger" data-act="order" data-a="noshow" data-id="${o.id}">Vắng mặt</button>` : ''}
-        <button class="btn small ghost" data-act="toggle" data-id="${o.id}">${UI.open[o.id] ? 'Ẩn chi tiết' : 'Chi tiết'}</button></div>
-        ${UI.open[o.id] ? `<div class="detail"><div><b>Địa chỉ:</b> ${esc(o.address)}, ${esc(o.district)}</div><div><b>Nghề nghiệp:</b> ${esc(o.job)}</div><div><b>Xác nhận đủ 18 tuổi:</b> ${o.adult_confirmed ? 'Có' : 'Không'}</div>${answersHtml(o)}</div>` : ''}</td></tr>`).join('')
-    : '<tr><td colspan="6" class="meta">Không có đơn ở trạng thái này.</td></tr>'}
-    </tbody></table></div></section>`;
+    <nav class="admin-tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-k="${k}" aria-pressed="${UI.tab === k}">${l}</button>`).join('')}</nav>
+    <div id="view">${({ pets: vPets, stations: vStations })[UI.tab]()}</div>`;
 }
 
 function petFormHtml() {
@@ -194,20 +140,6 @@ function vStations() {
   return D.stations.map(s => stationForm(s, false)).join('') + stationForm({}, true);
 }
 
-function vSettings() {
-  return `<section class="panel"><h2>Cài đặt lịch đón bé</h2>
-    <p class="section-label">Ngày mở cửa</p>
-    <div class="daytoggles" style="margin:6px 0 14px">${[1, 2, 3, 4, 5, 6, 0].map(x => `<label class="choice"><input type="checkbox" data-openday="${x}" ${D.settings.openDays.includes(x) ? 'checked' : ''}>${WEEKDAYS[x]}</label>`).join('')}</div>
-    <p class="section-label">Số khách tối đa mỗi khung giờ</p>
-    ${D.slots.map(s => `<label class="cap-row"><input type="number" min="0" max="50" data-cap="${esc(s.id)}" value="${s.capacity}"><span>${esc(s.label)}</span></label>`).join('')}
-    <div class="nav-steps"><span class="hint">Thay đổi chỉ áp dụng cho lịch đặt mới. Đơn đã đặt giữ nguyên.</span><button class="btn" data-act="settingssave">Lưu cài đặt</button></div></section>`;
-}
-
-function vEmails() {
-  return `<section class="panel"><h2>20 email gần nhất</h2>
-    ${D.emails.length ? D.emails.map(m => `<div class="mail"><b>${esc(m.subject)}</b> ${m.ok ? '' : '<span class="pill cancelled">Gửi lỗi</span>'}<br><small>${esc(m.to_email)}, ${fmtDT(m.created_at)}${m.error ? '<br>' + esc(m.error) : ''}</small></div>`).join('') : '<p class="meta">Chưa gửi email nào.</p>'}</section>`;
-}
-
 /* ---------- actions ---------- */
 function newPetForm(p) {
   UI.petErr = {};
@@ -263,15 +195,6 @@ document.addEventListener('click', async e => {
   if (a === 'logout') { await sb.auth.signOut(); D = null; me = null; renderLogin(); return; }
   if (a === 'refresh') { await busy(el, refresh); return; }
   if (a === 'tab') { UI.tab = el.dataset.k; render(); return; }
-  if (a === 'ofilter') { UI.orderFilter = el.dataset.k; render(); return; }
-  if (a === 'toggle') { UI.open[id] = !UI.open[id]; render(); return; }
-  if (a === 'order') {
-    const act = el.dataset.a;
-    const ask = { reject: 'Từ chối đơn này? Bé sẽ được nhả cho người khác và khách nhận email báo.', noshow: 'Đánh dấu khách vắng mặt? Đơn bị hủy và bé được nhả.', complete: 'Xác nhận đã giao bé cho khách?' }[act];
-    if (ask && !confirm(ask)) return;
-    await busy(el, async () => { try { await call('POST', 'admin/orders/action', { id, action: act }); toast('Đã cập nhật đơn.'); await refresh(); } catch (err) { toast(err.message); } });
-    return;
-  }
   if (a === 'petnew') { newPetForm(null); render(); return; }
   if (a === 'petedit') { newPetForm(D.pets.find(p => p.id === id)); render(); document.getElementById('petform').scrollIntoView(); return; }
   if (a === 'petcancel') { UI.petForm.newFiles.forEach(f => URL.revokeObjectURL(f.url)); UI.petForm = null; render(); return; }
@@ -287,11 +210,6 @@ document.addEventListener('click', async e => {
       catch (err) { if (isNew) { UI.stationErr = err.fields || {}; render(); } toast(err.message); }
     });
     return;
-  }
-  if (a === 'settingssave') {
-    const openDays = [...document.querySelectorAll('[data-openday]')].filter(x => x.checked).map(x => +x.dataset.openday);
-    const capacities = Object.fromEntries([...document.querySelectorAll('[data-cap]')].map(x => [x.dataset.cap, +x.value]));
-    await busy(el, async () => { try { await call('POST', 'admin/settings', { openDays, capacities }); toast('Đã lưu cài đặt lịch.'); await refresh(); } catch (err) { toast(err.message); } });
   }
 });
 

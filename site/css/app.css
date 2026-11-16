@@ -1,6 +1,6 @@
 /* TryYourPet Brand Guideline: Cobalt #012fca chủ đạo, Goldenrod #ffc927, Vivid Orange #fa5a2c, Vermilion #e80000, đen, trắng.
    Font: Editorial New Ultra Light (tiêu đề), Neulis Sans (nội dung). Logo, mascot, phụ kiện trong thư mục assets/.
-   Layout: hero chia đôi cobalt | goldenrod có mascot, hàng 4 bước, lưới thẻ trắng; checkout = form + cột tóm tắt; quản trị = số liệu + bảng */
+   Layout: hero chia đôi cobalt | goldenrod có mascot, hàng 3 bước, lưới thẻ trắng, khung liên hệ nhận nuôi; quản trị = bảng các bé và trạm */
 @font-face{font-family:"Editorial New";src:url("../assets/fonts/editorial-new-ultralight.otf") format("opentype");font-weight:200;font-style:normal;font-display:swap}
 @font-face{font-family:"Editorial New";src:url("../assets/fonts/editorial-new-ultralight-italic.otf") format("opentype");font-weight:200;font-style:italic;font-display:swap}
 @font-face{font-family:"Neulis Sans";src:url("../assets/fonts/neulis-sans.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap}
@@ -290,3 +290,12 @@ input[type=password]{background:var(--surface);border:1px solid var(--line);bord
 .photos figure.removed{opacity:.35}
 .detail{background:var(--sunk);border-radius:10px;padding:12px;font-size:13px;margin-top:6px}
 .who{font-size:13px;color:var(--muted)}
+
+/* adoption by message or phone */
+.flow.three{grid-template-columns:repeat(3,1fr)}
+.contact{display:grid;gap:12px;background:var(--sunk);border-radius:14px;padding:16px;font-size:14px}
+.contact-actions{display:flex;flex-wrap:wrap;gap:8px}
+.contact .phone{font-variant-numeric:tabular-nums;white-space:nowrap}
+.contact-panel{margin-top:28px}
+.contact-panel .contact{background:none;padding:0}
+@media (max-width:560px){.flow.three{grid-template-columns:1fr}.contact-actions .btn{flex:1 1 100%}}
